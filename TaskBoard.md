@@ -463,6 +463,76 @@ def notify_admin(email):
 > Removing clients from employees should grey out the row on the employees sheet
 >> This should be handled by app scripts.
 > When _admin removes_ the assigned employee in the **dashboard sheet**, the previously assigned **employee’s sheet should turn the row grey**
+
+** CHAT GPT GENERATED SCRIPT THAT MAY HELP BUT PROBABLY HAS ERRORS **
+
+
+```javascript
+const DASHBOARD_SHEET = "Dashboard";
+const EMPLOYEE_COLUMN = 11; // Column K
+const JOB_ID_COLUMN = 1; // Column A
+const DIRECTORY_SHEET = "EmployeeDirectory";
+const GREY = "#d3d3d3";
+
+function onEdit(e) {
+  const sheet = e.range.getSheet();
+  if (sheet.getName() !== DASHBOARD_SHEET || e.range.getColumn() !== EMPLOYEE_COLUMN) return;
+
+  const row = e.range.getRow();
+  const jobId = sheet.getRange(row, JOB_ID_COLUMN).getValue();
+  const newEmployee = e.range.getValue();
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const key = `row-${row}`;
+  const prevEmployee = scriptProperties.getProperty(key);
+
+  // Store new employee value for future comparison
+  scriptProperties.setProperty(key, newEmployee || "");
+
+  // If previously assigned and now removed or changed
+  if (prevEmployee && prevEmployee !== newEmployee) {
+    const prevSheetName = getEmployeeSheetName(prevEmployee);
+    if (prevSheetName) {
+      greyOutRowInSheet(prevSheetName, jobId);
+    }
+  }
+}
+
+function getEmployeeSheetName(fullName) {
+  const directorySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(DIRECTORY_SHEET);
+  if (!directorySheet) return null;
+
+  const data = directorySheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    const name = data[i][0];
+    const id = data[i][2];
+    if (name && id && name.trim() === fullName.trim()) {
+      const nameParts = name.split(" ");
+      const formatted = `${nameParts[0]}_${nameParts[1]}_${id}`;
+      return formatted;
+    }
+  }
+
+  return null;
+}
+
+function greyOutRowInSheet(sheetName, jobId) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return;
+
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === String(jobId).trim()) {
+      const range = sheet.getRange(i + 1, 1, 1, sheet.getLastColumn());
+      range.setBackground(GREY);
+      break;
+    }
+  }
+}
+```
+
 ---
 ---
 ### 4.
