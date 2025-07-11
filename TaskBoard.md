@@ -457,5 +457,13 @@ def notify_admin(email):
 ---
 ---
 
-## 3. 
+## 3. Update Sheet to Reflect Employee Assignment Change
+---
+###Instructions: 
+> Removing clients from employees should grey out the row on the employees sheet
+>> This should be handled by app scripts.
+> When _admin removes_ the assigned employee in the **dashboard sheet**, the previously assigned **employee’s sheet should turn the row grey**
+---
+---
+### 4.
 
