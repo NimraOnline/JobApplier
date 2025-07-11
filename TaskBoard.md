@@ -1,6 +1,6 @@
 # Task Breadown
 
-### 1. Fast API to Create Emails on the Fly
+## 1. Fast API to Create Emails on the Fly
 
 We are setting up an API that allows users to request a custom email address dynamically. The email address will be created on Zoho Mail using a custom domain (e.g., `username@yourdomain.com`). The API will return the newly created email address and a randomly generated password.
 
