@@ -4,7 +4,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { FileSpreadsheet, Mail, ExternalLink, Reply, Archive, Delete } from "lucide-react"
 
-const clientAssignments = [
+// These stay in dashboard-content.tsx for now
+export interface ClientAssignment {
+  id: string;
+  client: string; // or consider replacing with clientId only
+  clientId: string;
+  resume: string;
+  questionnaire: string;
+  applications: number;
+  matches: number;
+}
+
+export interface ClientEmail {
+  id: number;
+  from: string;
+  subject: string;
+  preview: string;
+  time: string;
+  isRead: boolean;
+  isImportant: boolean;
+}
+
+export const clientAssignments: ClientAssignment[] = [
   {
     id: "A1",
     client: "Jane Doe",
@@ -32,9 +53,9 @@ const clientAssignments = [
     applications: 0,
     matches: 0,
   },
-]
+];
 
-const clientEmails = [
+export const clientEmails: ClientEmail[] = [
   {
     id: 1,
     from: "jane.doe@email.com",
@@ -83,7 +104,7 @@ const clientEmails = [
     isRead: true,
     isImportant: true,
   },
-]
+];
 
 export function DashboardContent() {
   return (

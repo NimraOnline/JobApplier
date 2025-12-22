@@ -1,4 +1,8 @@
 "use client"
+
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/app/providers/AuthProvider"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -34,6 +38,28 @@ interface TopNavProps {
 }
 
 export function TopNav({ activeTab, onTabChange }: TopNavProps) {
+  const router = useRouter()
+  const supabase = createClient()
+  
+  // 1. Get real user data from our custom hook
+  const { user, profile } = useAuth()
+
+  // 2. Handle the Sign Out Logic
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push("/login")
+    router.refresh() // Ensures the cache is cleared
+  }
+
+  // 3. Helper to get display name and initials
+  const displayName = profile?.full_name || user?.email?.split('@')[0] || "Employee"
+  const displayRole = profile?.role || "Team Member"
+  const userEmail = user?.email || "No email"
+  
+  const getInitials = (name: string) => {
+    return name.substring(0, 2).toUpperCase()
+  }
+
   return (
     <nav className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 border-b border-blue-700 shadow-lg">
       <div className="flex items-center justify-between px-6 py-4">
@@ -78,28 +104,39 @@ export function TopNav({ activeTab, onTabChange }: TopNavProps) {
               className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
             >
               <Avatar className="w-8 h-8 ring-2 ring-white/30">
-                <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-sm font-semibold">
-                  S
+                {/* We can use profile.avatar_url if you add that to your DB later */}
+                <AvatarImage src="" /> 
+                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-semibold">
+                  {getInitials(displayName)}
                 </AvatarFallback>
               </Avatar>
-              <div className="text-left">
-                <p className="text-sm font-medium text-white">Sarah</p>
-                <p className="text-xs text-blue-100">Employee</p>
+              <div className="text-left hidden md:block">
+                <p className="text-sm font-medium text-white truncate max-w-[150px]">
+                  {displayName}
+                </p>
+                <p className="text-xs text-blue-100 capitalize">
+                  {displayRole}
+                </p>
               </div>
               <ChevronDown className="w-4 h-4 text-blue-100" />
             </Button>
           </DropdownMenuTrigger>
+          
           <DropdownMenuContent align="end" className="w-64 bg-white/95 backdrop-blur-sm border border-slate-200">
             <div className="px-3 py-2">
-              <p className="text-sm font-medium text-slate-900">Sarah</p>
-              <p className="text-xs text-slate-600 flex items-center gap-1">
-                <Mail className="w-3 h-3" />
-                employee_generated_email@gmail.com
+              <p className="text-sm font-medium text-slate-900">{displayName}</p>
+              <p className="text-xs text-slate-600 flex items-center gap-1 mt-1 truncate">
+                <Mail className="w-3 h-3 flex-shrink-0" />
+                <span className="truncate">{userEmail}</span>
               </p>
             </div>
+            
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer">
+            
+            <DropdownMenuItem 
+              onClick={handleSignOut}
+              className="text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer focus:text-red-700 focus:bg-red-50"
+            >
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
             </DropdownMenuItem>

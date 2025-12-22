@@ -1,26 +1,49 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
+import { useRouter } from "next/navigation" // Import useRouter
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Building2, Lock, Mail } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast" // Assuming shadcn/ui toast
+import { createClient } from '@/lib/supabase/client' // Import Supabase client
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+  const { toast } = useToast() // Initialize toast
+  const supabase = createClient() // Initialize Supabase client
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    // Simulate login
-    setTimeout(() => {
-      window.location.href = "/dashboard"
-    }, 1000)
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) {
+      toast({
+        title: "Login Failed",
+        description: error.message,
+        variant: "destructive",
+      })
+      setIsLoading(false)
+    } else {
+      toast({
+        title: "Logged In Successfully",
+        description: "Redirecting to dashboard...",
+      })
+      // The AuthProvider will detect the session change and update state
+      // No need for window.location.href, router.push is better for Next.js
+      router.push("/dashboard")
+    }
   }
 
   return (

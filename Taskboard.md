@@ -55,22 +55,22 @@ To interact with Zoho Mail programmatically, you need to obtain **OAuth 2.0 cred
 
 1. **Generate Authorization URL**: Redirect the user to Zoho’s OAuth authorization URL to get the authorization code:
 
-   ```plaintext
+   \`\`\`plaintext
    https://accounts.zoho.com/oauth/v2/auth?scope=ZohoMail.fullaccess&client_id=YOUR_CLIENT_ID&response_type=code&access_type=offline&redirect_uri=YOUR_REDIRECT_URI
-   ```
+   \`\`\`
 
    * Replace `YOUR_CLIENT_ID` and `YOUR_REDIRECT_URI` with the values from your API client setup.
 
 2. **Exchange Authorization Code for Token**: Once the user authorizes, they’ll receive an **authorization code**. Use this code to exchange for an **access token** by sending a `POST` request:
 
-   ```bash
+   \`\`\`bash
    curl -X POST https://accounts.zoho.com/oauth/v2/token \
    -d client_id=YOUR_CLIENT_ID \
    -d client_secret=YOUR_CLIENT_SECRET \
    -d grant_type=authorization_code \
    -d redirect_uri=YOUR_REDIRECT_URI \
    -d code=AUTHORIZATION_CODE
-   ```
+   \`\`\`
 
    * This will return an **access token** that you will use to authenticate API requests.
 
@@ -84,15 +84,15 @@ Now, let's set up a simple **Flask API** that will interact with Zoho's API to *
 
 1. Install Flask and `requests` using pip:
 
-   ```bash
+   \`\`\`bash
    pip install Flask requests
-   ```
+   \`\`\`
 
 #### **3.2. Implement the API (app.py)**
 
 Create a new Python file (`app.py`) with the following code:
 
-```python
+\`\`\`python
 from flask import Flask, request, jsonify
 import random
 import string
@@ -176,7 +176,7 @@ def delete_email():
 
 if __name__ == '__main__':
     app.run(debug=True)
-```
+\`\`\`
 
 ---
 
@@ -198,21 +198,21 @@ if __name__ == '__main__':
 
 1. **Run Flask**: Start your Flask app by running the following:
 
-   ```bash
+   \`\`\`bash
    python app.py
-   ```
+   \`\`\`
 
 2. **Create Email**: Use **Postman** or **curl** to test the `/create_email` endpoint:
 
-   ```bash
+   \`\`\`bash
    curl -X POST http://127.0.0.1:5000/create_email -H "Content-Type: application/json" -d '{"username": "testuser"}'
-   ```
+   \`\`\`
 
 3. **Delete Email**: After performing tests, delete the email by calling the `/delete_email` endpoint:
 
-   ```bash
+   \`\`\`bash
    curl -X POST http://127.0.0.1:5000/delete_email -H "Content-Type: application/json" -d '{"email": "testuser@yourdomain.com"}'
-   ```
+   \`\`\`
 
 ---
 
@@ -284,7 +284,7 @@ For: *Job Applier App – Unlock & Schedule Offer Payment Flow*
 
 Create a `.env` file:
 
-```env
+\`\`\`env
 PADDLE_VENDOR_ID=your_vendor_id
 PADDLE_API_KEY=your_api_key
 PADDLE_PUBLIC_KEY="-----BEGIN PUBLIC KEY----- ... -----END PUBLIC KEY-----"
@@ -294,21 +294,21 @@ DOMAIN=https://yourfrontend.com
 GOOGLE_SHEET_ID=your_google_sheet_id
 EMAIL_USER=your_email@example.com
 EMAIL_PASS=your_email_password_or_app_password
-```
+\`\`\`
 
 ---
 
 ## 🖥️ STEP 3 — Install Required Libraries
 
-```bash
+\`\`\`bash
 pip install fastapi uvicorn python-dotenv paddle-python google-api-python-client google-auth-httplib2 google-auth-oauthlib
-```
+\`\`\`
 
 ---
 
 ## 🚀 STEP 4 — Create Payment Link Endpoint
 
-```python
+\`\`\`python
 import os
 from fastapi import FastAPI, HTTPException
 from dotenv import load_dotenv
@@ -335,13 +335,13 @@ def create_payment_link(option: str, email: str):
     })
 
     return {"url": result["url"]}
-```
+\`\`\`
 
 ---
 
 ## 🔁 STEP 5 — Add Paddle Webhook
 
-```python
+\`\`\`python
 from fastapi import Request
 import paddle
 import hashlib
@@ -356,7 +356,7 @@ async def paddle_webhook(request: Request):
         await mark_as_paid(email, option)
     
     return {"status": "ok"}
-```
+\`\`\`
 
 > Paddle will `POST` this when payment completes.
 
@@ -364,7 +364,7 @@ async def paddle_webhook(request: Request):
 
 ## ✅ STEP 6 — Update Google Sheet or Notify Admin
 
-```python
+\`\`\`python
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 
@@ -419,13 +419,13 @@ async def mark_as_paid(email, option):
                 }
             ).execute()
             break
-```
+\`\`\`
 
 ---
 
 ## 📩 STEP 7 — (Optional) Email Notification
 
-```python
+\`\`\`python
 import smtplib
 from email.message import EmailMessage
 
@@ -439,7 +439,7 @@ def notify_admin(email):
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(os.getenv("EMAIL_USER"), os.getenv("EMAIL_PASS"))
         smtp.send_message(msg)
-```
+\`\`\`
 
 ---
 
@@ -467,7 +467,7 @@ def notify_admin(email):
 ** CHAT GPT GENERATED SCRIPT THAT MAY HELP BUT PROBABLY HAS ERRORS **
 
 
-```javascript
+\`\`\`javascript
 const DASHBOARD_SHEET = "Dashboard";
 const EMPLOYEE_COLUMN = 11; // Column K
 const JOB_ID_COLUMN = 1; // Column A
@@ -531,7 +531,7 @@ function greyOutRowInSheet(sheetName, jobId) {
     }
   }
 }
-```
+\`\`\`
 
 ---
 ---
