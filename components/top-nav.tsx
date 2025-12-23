@@ -1,8 +1,10 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
-import { useAuth } from "@/app/providers/AuthProvider"
+// Remove "useRouter" and "createClient" imports, we don't need them directly anymore
+// import { useRouter } from "next/navigation" 
+// import { createClient } from "@/lib/supabase/client"
+
+import { useAuth } from "@/app/providers/AuthProvider" // Use our shared context
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -14,22 +16,11 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { LayoutDashboard, Users, Bot, LogOut, Mail, Building2, ChevronDown } from "lucide-react"
 
+// ... (Keep the navigation array the same) ...
 const navigation = [
-  {
-    title: "Dashboard",
-    icon: LayoutDashboard,
-    id: "dashboard",
-  },
-  {
-    title: "Clients",
-    icon: Users,
-    id: "clients",
-  },
-  {
-    title: "Generate & Edit",
-    icon: Bot,
-    id: "generate-edit",
-  },
+  { title: "Dashboard", icon: LayoutDashboard, id: "dashboard" },
+  { title: "Clients", icon: Users, id: "clients" },
+  { title: "Generate & Edit", icon: Bot, id: "generate-edit" },
 ]
 
 interface TopNavProps {
@@ -38,34 +29,33 @@ interface TopNavProps {
 }
 
 export function TopNav({ activeTab, onTabChange }: TopNavProps) {
-  const router = useRouter()
-  const supabase = createClient()
-  
-  // 1. Get real user data from our custom hook
-  const { user, profile } = useAuth()
+  // 1. Get the shared supabase instance from context
+  const { supabase, user, profile } = useAuth()
 
-  // 2. Handle the Sign Out Logic
+  // 2. The Robust Sign Out Function
   const handleSignOut = async () => {
+    // Await the sign out from Supabase
     await supabase.auth.signOut()
-    router.push("/login")
-    router.refresh() // Ensures the cache is cleared
+    
+    // FORCE a hard refresh to the login page.
+    // This clears the browser cache and prevents Middleware loops.
+    window.location.href = "/login"
   }
 
-  // 3. Helper to get display name and initials
   const displayName = profile?.full_name || user?.email?.split('@')[0] || "Employee"
   const displayRole = profile?.role || "Team Member"
   const userEmail = user?.email || "No email"
   
   const getInitials = (name: string) => {
-    return name.substring(0, 2).toUpperCase()
+    return name ? name.substring(0, 2).toUpperCase() : "EM"
   }
 
   return (
     <nav className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 border-b border-blue-700 shadow-lg">
       <div className="flex items-center justify-between px-6 py-4">
-        {/* Left side - Logo and Navigation */}
+        
+        {/* ... (Left side - Logo and Navigation code stays exactly the same) ... */}
         <div className="flex items-center gap-8">
-          {/* Logo */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
               <Building2 className="w-5 h-5 text-white" />
@@ -76,7 +66,6 @@ export function TopNav({ activeTab, onTabChange }: TopNavProps) {
             </div>
           </div>
 
-          {/* Navigation Buttons */}
           <div className="flex items-center gap-2">
             {navigation.map((item) => (
               <Button
@@ -104,7 +93,6 @@ export function TopNav({ activeTab, onTabChange }: TopNavProps) {
               className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
             >
               <Avatar className="w-8 h-8 ring-2 ring-white/30">
-                {/* We can use profile.avatar_url if you add that to your DB later */}
                 <AvatarImage src="" /> 
                 <AvatarFallback className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-semibold">
                   {getInitials(displayName)}
