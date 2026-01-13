@@ -41,6 +41,17 @@ export async function middleware(request: NextRequest) {
 
   const isDashboardRoute = request.nextUrl.pathname.startsWith('/dashboard')
   const isLoginPage = request.nextUrl.pathname.startsWith('/login')
+  const isRootPath = request.nextUrl.pathname === '/'
+
+  if (isRootPath) {
+    const url = request.nextUrl.clone()
+    if (user) {
+      url.pathname = '/dashboard'
+    } else {
+      url.pathname = '/login'
+    }
+    return NextResponse.redirect(url)
+  }
 
   // Case A: User is NOT logged in and tries to access Dashboard
   if (!user && isDashboardRoute) {
