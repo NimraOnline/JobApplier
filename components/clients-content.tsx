@@ -4,72 +4,72 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Users, Loader2 } from "lucide-react"
 import { ClientIdBadge } from "@/components/client-id-badge"
 import { ClientForms } from "@/components/client-forms"
-import type { ApplicationFormData, JobMatchFormData } from "@/types/client"
+import type { ApplicationFormData, JobMatchFormData, Client } from "@/types/client"
 import { useToast } from "@/hooks/use-toast"
-// NEW IMPORTS
-import { useClients } from "@/hooks/use-clients"
 import { submitJobApplication, submitJobMatch } from "@/app/actions/client-actions"
 
-export function ClientsContent() {
-  const { clients, loading } = useClients() // <--- Use the hook
+// Define Props Interface
+interface ClientsContentProps {
+  clients: Client[]
+  isLoading: boolean
+}
+
+export function ClientsContent({ clients, isLoading }: ClientsContentProps) {
+  // Removed useClients() hook call
   const [activeClient, setActiveClient] = useState<string>("") 
   const { toast } = useToast()
 
   // Set the first client as active once data loads
   useEffect(() => {
+    // If we have clients but no active tab selected yet, select the first one
     if (!activeClient && clients.length > 0) {
       setActiveClient(clients[0].slug)
     }
+    // If we have an active tab but it's not in the new list (e.g. lost access), reset to first
+    else if (activeClient && clients.length > 0 && !clients.find(c => c.slug === activeClient)) {
+        setActiveClient(clients[0].slug)
+    }
   }, [clients, activeClient])
 
-  // --- HANDLER: JOB APPLICATION ---
   const handleApplicationSubmit = async (data: ApplicationFormData & { clientId: string }) => {
     try {
-      await submitJobApplication(data) // <--- Call Server Action
-
+      await submitJobApplication(data)
       toast({
         title: "✅ Application Submitted!",
-        description: `Job application recorded for ${getClientName(data.clientId)}`,
+        description: `Job application recorded.`,
         duration: 5000,
       })
     } catch (error: any) {
       console.error("Submission failed:", error)
       toast({
         title: "❌ Submission Failed",
-        description: error.message || "There was an error submitting the application.",
+        description: error.message,
         variant: "destructive",
         duration: 5000,
       })
     }
   }
 
-  // --- HANDLER: JOB MATCH ---
   const handleJobMatchSubmit = async (data: JobMatchFormData & { clientId: string }) => {
     try {
-      await submitJobMatch(data) // <--- Call Server Action
-
+      await submitJobMatch(data)
       toast({
         title: "✅ Job Match Recorded!",
-        description: `Job match uploaded for ${getClientName(data.clientId)}`,
+        description: `Job match uploaded.`,
         duration: 5000,
       })
     } catch (error: any) {
       console.error("Submission failed:", error)
       toast({
         title: "❌ Upload Failed",
-        description: error.message || "There was an error uploading the job match.",
+        description: error.message,
         variant: "destructive",
         duration: 5000,
       })
     }
   }
 
-  const getClientName = (clientId: string): string => {
-    const client = clients.find((c) => c.id === clientId)
-    return client?.name || "Client"
-  }
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
@@ -79,7 +79,7 @@ export function ClientsContent() {
   }
 
   if (clients.length === 0) {
-    return <div className="p-6 text-center text-slate-500">No clients found in database.</div>
+    return <div className="p-6 text-center text-slate-500">No clients assigned to you found.</div>
   }
 
   return (
@@ -108,7 +108,6 @@ export function ClientsContent() {
                 {client.name}
               </h2>
               <p className="text-slate-600">
-                {/* Display first 8 chars of UUID to act as a short ID */}
                 Client ID: <ClientIdBadge id={client.id.substring(0, 8).toUpperCase()} />
               </p>
             </div>

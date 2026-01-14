@@ -2,40 +2,43 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, FileText, CheckCircle, Clock } from "lucide-react"
-import { useClients } from "@/hooks/use-clients" // <--- Reuse the hook
 import { LoadingState } from "@/components/loading-state"
+import type { Client } from "@/types/client"
 
-export function DashboardContent() {
-  // Fetch the REAL assigned clients
-  const { clients, loading } = useClients()
+// Define Props Interface
+interface DashboardContentProps {
+  clients: Client[]
+  isLoading: boolean
+}
 
-  if (loading) {
+export function DashboardContent({ clients, isLoading }: DashboardContentProps) {
+  // We removed useClients() hook from here
+
+  if (isLoading) {
     return <LoadingState message="Loading dashboard stats..." />
   }
 
-  // Calculate stats based on real data
   const totalClients = clients.length
   
-  // Note: To get real application counts, you'd need a similar useApplications hook
-  // For now, we use the real client count and placeholders for others
   const stats = [
     {
       title: "My Active Clients",
-      value: totalClients.toString(), // <--- REAL DATA
+      value: totalClients.toString(),
       icon: Users,
       description: "Assigned to you",
       color: "text-blue-600",
     },
+    // ... other stats ...
     {
       title: "Pending Applications",
-      value: "12", // Placeholder (requires separate fetch)
+      value: "12", 
       icon: Clock,
       description: "Awaiting review",
       color: "text-orange-600",
     },
     {
       title: "Applications Submitted",
-      value: "45", // Placeholder
+      value: "45",
       icon: FileText,
       description: "This month",
       color: "text-green-600",
@@ -85,7 +88,7 @@ export function DashboardContent() {
                  <div key={client.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
-                        {client.name.substring(0,2).toUpperCase()}
+                        {client.name ? client.name.substring(0,2).toUpperCase() : "CL"}
                       </div>
                       <div>
                         <p className="font-medium text-sm">{client.name}</p>

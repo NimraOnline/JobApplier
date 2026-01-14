@@ -9,22 +9,19 @@ export function useClients() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   
-  // Track mount state to avoid setting state on unmounted components
-  const isMounted = useRef(true)
-
   useEffect(() => {
-    isMounted.current = true
-    return () => { isMounted.current = false }
-  }, [])
+    let mounted = true
 
-  useEffect(() => {
     async function fetchAssignedClients() {
-      if (!user?.id) return
+      // Safety: If no user, stop loading and return empty
+      if (!user?.id) {
+        if (mounted) setLoading(false)
+        return
+      }
 
       try {
-        // Only set hard loading if we don't have clients yet
-        // This prevents the UI from flashing if we background refresh
-        setLoading((prev) => prev && clients.length === 0) 
+        // Only set loading true if we don't have data yet (prevents flicker on re-fetch)
+        setLoading(prev => prev || clients.length === 0)
         
         const { data, error } = await supabase
           .from("clients")
@@ -35,13 +32,13 @@ export function useClients() {
 
         if (error) throw error
         
-        if (isMounted.current) {
+        if (mounted) {
           setClients(data as unknown as Client[])
         }
       } catch (err) {
         console.error("Error fetching assigned clients:", err)
       } finally {
-        if (isMounted.current) {
+        if (mounted) {
           setLoading(false)
         }
       }
@@ -49,9 +46,11 @@ export function useClients() {
 
     fetchAssignedClients()
 
-    // FIX: Only re-run if the User ID changes, not the entire user object
+    return () => {
+      mounted = false
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [supabase, user?.id]) 
+  }, [user?.id]) // Only re-run when User ID changes
 
   return { clients, loading }
 }
