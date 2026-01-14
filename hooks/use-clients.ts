@@ -1,27 +1,30 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useAuth } from "@/app/providers/AuthProvider"
 import type { Client } from "@/types/client"
 
 export function useClients() {
-  const { supabase, user } = useAuth() // Get the current logged-in employee
+  const { supabase, user } = useAuth()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
+  
+  // Track mount state to avoid setting state on unmounted components
+  const isMounted = useRef(true)
+
+  useEffect(() => {
+    isMounted.current = true
+    return () => { isMounted.current = false }
+  }, [])
 
   useEffect(() => {
     async function fetchAssignedClients() {
-      // Don't fetch if user isn't loaded yet
-      if (!user) return
+      if (!user?.id) return
 
       try {
-        setLoading(true)
-        
-        // QUERY EXPLANATION:
-        // 1. Select all client columns
-        // 2. Perform an INNER JOIN on client_assignments (!inner)
-        // 3. Filter where the assignment's employee_id matches the current user
-        // 4. Filter where the assignment is active
+        // Only set hard loading if we don't have clients yet
+        // This prevents the UI from flashing if we background refresh
+        setLoading((prev) => prev && clients.length === 0) 
         
         const { data, error } = await supabase
           .from("clients")
@@ -32,17 +35,23 @@ export function useClients() {
 
         if (error) throw error
         
-        // The data structure is flattened by Supabase, but we just need the client fields
-        setClients(data as unknown as Client[])
+        if (isMounted.current) {
+          setClients(data as unknown as Client[])
+        }
       } catch (err) {
         console.error("Error fetching assigned clients:", err)
       } finally {
-        setLoading(false)
+        if (isMounted.current) {
+          setLoading(false)
+        }
       }
     }
 
     fetchAssignedClients()
-  }, [supabase, user])
+
+    // FIX: Only re-run if the User ID changes, not the entire user object
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase, user?.id]) 
 
   return { clients, loading }
 }
