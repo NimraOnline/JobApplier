@@ -1,26 +1,48 @@
 "use client"
 
-import { useState } from "react"
-
-export interface Client {
-  id: string
-  name: string
-  company: string
-  status: "active" | "pending" | "inactive"
-}
+import { useEffect, useState } from "react"
+import { useAuth } from "@/app/providers/AuthProvider"
+import type { Client } from "@/types/client"
 
 export function useClients() {
-  const [clients, setClients] = useState<Client[]>([
-    { id: "1", name: "John Doe", company: "Tech Corp", status: "active" },
-    { id: "2", name: "Jane Smith", company: "Design Inc", status: "active" },
-    { id: "3", name: "Mike Johnson", company: "Dev Studios", status: "pending" },
-  ])
+  const { supabase, user } = useAuth() // Get the current logged-in employee
+  const [clients, setClients] = useState<Client[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const [isLoading, setIsLoading] = useState(false)
+  useEffect(() => {
+    async function fetchAssignedClients() {
+      // Don't fetch if user isn't loaded yet
+      if (!user) return
 
-  return {
-    clients,
-    isLoading,
-    setClients,
-  }
+      try {
+        setLoading(true)
+        
+        // QUERY EXPLANATION:
+        // 1. Select all client columns
+        // 2. Perform an INNER JOIN on client_assignments (!inner)
+        // 3. Filter where the assignment's employee_id matches the current user
+        // 4. Filter where the assignment is active
+        
+        const { data, error } = await supabase
+          .from("clients")
+          .select("*, client_assignments!inner(employee_id, is_active)") 
+          .eq("client_assignments.employee_id", user.id)
+          .eq("client_assignments.is_active", true)
+          .order("name")
+
+        if (error) throw error
+        
+        // The data structure is flattened by Supabase, but we just need the client fields
+        setClients(data as unknown as Client[])
+      } catch (err) {
+        console.error("Error fetching assigned clients:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAssignedClients()
+  }, [supabase, user])
+
+  return { clients, loading }
 }
