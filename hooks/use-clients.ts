@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
 import { useAuth } from "@/app/providers/AuthProvider"
 import type { Client } from "@/types/client"
 
@@ -13,14 +13,12 @@ export function useClients() {
     let mounted = true
 
     async function fetchAssignedClients() {
-      // Safety: If no user, stop loading and return empty
       if (!user?.id) {
         if (mounted) setLoading(false)
         return
       }
 
       try {
-        // Only set loading true if we don't have data yet (prevents flicker on re-fetch)
         setLoading(prev => prev || clients.length === 0)
         
         const { data, error } = await supabase
@@ -35,7 +33,11 @@ export function useClients() {
         if (mounted) {
           setClients(data as unknown as Client[])
         }
-      } catch (err) {
+      } catch (err: any) {
+        // --- THE FIX: IGNORE ABORT ERRORS HERE TOO ---
+        if (err.name === 'AbortError' || err.message?.includes('aborted') || err.message?.includes('fetch failed')) {
+           return 
+        }
         console.error("Error fetching assigned clients:", err)
       } finally {
         if (mounted) {
@@ -50,7 +52,7 @@ export function useClients() {
       mounted = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]) // Only re-run when User ID changes
+  }, [user?.id]) 
 
   return { clients, loading }
 }

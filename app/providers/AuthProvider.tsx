@@ -37,14 +37,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .eq('id', userId)
             .single()
         
-        if (error) throw error
-        if (mounted) setProfile(data)
+        if (error && error.code !== 'PGRST116') throw error
+        if (mounted && data) setProfile(data)
       } catch (error) {
-        // Ignore errors if component is unmounted
-        if (mounted) {
-           console.error("Error fetching profile:", error)
-           setProfile(null)
-        }
+        console.error("Error fetching profile:", error)
       }
     }
 
@@ -64,9 +60,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (error: any) {
-        // Build robust check for AbortError
+        // --- THE FIX: IGNORE ABORT ERRORS ---
         if (error.name === 'AbortError' || error.message?.includes('aborted')) {
-          // Ignore abort errors (page navigation)
           return
         }
         console.error("Auth init error:", error)
@@ -86,7 +81,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(newSession?.user ?? null)
             
             if (newSession?.user) {
-                // We wrap this in a localized try/catch to prevent unhandled rejections
                 try {
                   await fetchProfile(newSession.user.id)
                 } catch (err) {
