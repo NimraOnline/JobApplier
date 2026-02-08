@@ -28,9 +28,11 @@ export interface ClientEmail {
   isImportant: boolean;
 }
 
-// Form data types (unchanged)
+// UPDATED: Form data types to match Database Schema
 export interface ApplicationFormData {
-  jobUrl: string;
+  companyName: string; // Added: DB requires this
+  jobTitle: string;    // Added: DB requires this
+  jobUrl: string;      // Existing
 }
 
 export interface JobMatchFormData {
