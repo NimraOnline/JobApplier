@@ -36,8 +36,12 @@ export interface ApplicationFormData {
 }
 
 export interface JobMatchFormData {
+  // If you want to keep it simple and just upload the file:
   emlFile: File | null;
   dateMatched: string;
+  // If you eventually want the employee to type the details:
+  companyName?: string; 
+  jobTitle?: string;
 }
 
 export interface ClientFormProps {
