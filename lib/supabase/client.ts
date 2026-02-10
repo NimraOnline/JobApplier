@@ -10,13 +10,13 @@ export function createClient() {
   // 3. Otherwise, create it, save it, and return it
   client = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-  {
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
       cookieOptions: {
-        name: 'employee-auth-token', // <--- UNIQUE NAME
+        name: 'employee-auth-token',
       },
-  }
+    }
+  )
 
   return client
 }
