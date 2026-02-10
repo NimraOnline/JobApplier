@@ -1,98 +1,98 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
-import { User, Session } from "@supabase/supabase-js"
-import { useRouter } from "next/navigation"
+import { createContext, useContext, useEffect, useState } from 'react'
+import { Session, User, SupabaseClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/client'
+import { Database } from '@/types/supabase'
 
-interface AuthContextType {
-  user: User | null
+type UserProfile = Database['public']['Tables']['user_profiles']['Row']
+
+type AuthContextType = {
+  supabase: SupabaseClient<Database>
   session: Session | null
-  profile: any | null
+  user: User | null
+  profile: UserProfile | null
   loading: boolean
   isEmployee: boolean
-  signOut: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  session: null,
-  profile: null,
-  loading: true,
-  isEmployee: false,
-  signOut: async () => {},
-})
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [session, setSession] = useState<Session | null>(null)
-  const [profile, setProfile] = useState<any | null>(null)
-  const [loading, setLoading] = useState(true)
-  const router = useRouter()
+  const [supabase] = useState(() => createClient())
   
-  const supabase = createClient()
+  const [session, setSession] = useState<Session | null>(null)
+  const [user, setUser] = useState<User | null>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let mounted = true
 
-    // 1. Define the fetch logic
-    const getSession = async () => {
+    const fetchProfile = async (userId: string) => {
       try {
-        // A. Get the session (checks local storage & cookies)
-        const { data: { session: currentSession }, error } = await supabase.auth.getSession()
-
-        if (error || !currentSession) {
-          if (mounted) {
-            setSession(null)
-            setUser(null)
-            setProfile(null)
-            setLoading(false) // <--- CRITICAL: Stop loading even if no session
-          }
-          return
-        }
-
-        // B. If session exists, fetch profile
-        if (mounted) {
-          setSession(currentSession)
-          setUser(currentSession.user)
-        }
-
-        const { data: userProfile } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('id', currentSession.user.id)
-          .single()
-
-        if (mounted) {
-          setProfile(userProfile)
-          setLoading(false)
-        }
-
-      } catch (err) {
-        console.error("Auth initialization error:", err)
-        if (mounted) setLoading(false) // <--- CRITICAL: Always stop loading
+        const { data, error } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('id', userId)
+            .single()
+        
+        if (error && error.code !== 'PGRST116') throw error
+        if (mounted && data) setProfile(data)
+      } catch (error) {
+        console.error("Error fetching profile:", error)
       }
     }
 
-    // 2. Run immediately
-    getSession()
-
-    // 3. Listen for changes (Sign In, Sign Out, Auto-Refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      if (mounted) {
-        setSession(newSession)
-        setUser(newSession?.user ?? null)
+    const getInitialAuth = async () => {
+      try {
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession()
+        if (error) throw error
         
-        if (!newSession) {
-            setProfile(null)
-            setLoading(false) // ensure loading stops on sign out
-        } else {
-             // Optional: Refetch profile on session change if needed
-             // For now, we assume the previous fetch covered it or page reload will handle it
-             setLoading(false)
+        if (mounted) {
+          setSession(currentSession)
+          setUser(currentSession?.user ?? null)
+
+          if (currentSession?.user) {
+              await fetchProfile(currentSession.user.id)
+          } else {
+              setProfile(null)
+          }
+        }
+      } catch (error: any) {
+        // --- THE FIX: IGNORE ABORT ERRORS ---
+        if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+          return
+        }
+        console.error("Auth init error:", error)
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+
+    getInitialAuth()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, newSession) => {
+        if (!mounted) return
+
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT') {
+            setSession(newSession)
+            setUser(newSession?.user ?? null)
+            
+            if (newSession?.user) {
+                try {
+                  await fetchProfile(newSession.user.id)
+                } catch (err) {
+                  console.error("Profile refresh error", err)
+                }
+            } else {
+                setProfile(null)
+            }
+            setLoading(false)
         }
       }
-    })
+    )
 
     return () => {
       mounted = false
@@ -100,19 +100,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [supabase])
 
-  const signOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
-  }
-
-  const isEmployee = profile?.role === 'employee' || profile?.role === 'manager' || profile?.role === 'admin'
+  const isEmployee = !!profile && ['employee', 'manager', 'admin'].includes(profile.role);
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, isEmployee, signOut }}>
+    <AuthContext.Provider value={{ supabase, session, user, profile, loading, isEmployee }}>
       {children}
     </AuthContext.Provider>
   )
 }
 
-export const useAuth = () => useContext(AuthContext)
+export function useAuth() {
+  const context = useContext(AuthContext)
+  if (!context) throw new Error('useAuth must be used within an AuthProvider')
+  return context
+}
