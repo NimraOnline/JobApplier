@@ -1,10 +1,11 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useState, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { User, Session } from "@supabase/supabase-js"
 import { useRouter } from "next/navigation"
 
+// ... (Keep your Interface and Context definitions the same) ...
 interface AuthContextType {
   user: User | null
   session: Session | null
@@ -30,15 +31,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   
-  const supabase = createClient()
+  // FIX: Use useMemo to ensure 'supabase' object reference NEVER changes
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     let mounted = true
 
-    // 1. Define the fetch logic
     const getSession = async () => {
       try {
-        // A. Get the session (checks local storage & cookies)
         const { data: { session: currentSession }, error } = await supabase.auth.getSession()
 
         if (error || !currentSession) {
@@ -46,17 +46,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setSession(null)
             setUser(null)
             setProfile(null)
-            setLoading(false) // <--- CRITICAL: Stop loading even if no session
+            setLoading(false)
           }
           return
         }
 
-        // B. If session exists, fetch profile
         if (mounted) {
           setSession(currentSession)
           setUser(currentSession.user)
         }
 
+        // Fetch profile
         const { data: userProfile } = await supabase
           .from('user_profiles')
           .select('*')
@@ -69,28 +69,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
       } catch (err) {
-        console.error("Auth initialization error:", err)
-        if (mounted) setLoading(false) // <--- CRITICAL: Always stop loading
+        console.error("Auth init error:", err)
+        if (mounted) setLoading(false)
       }
     }
 
-    // 2. Run immediately
     getSession()
 
-    // 3. Listen for changes (Sign In, Sign Out, Auto-Refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       if (mounted) {
         setSession(newSession)
         setUser(newSession?.user ?? null)
-        
         if (!newSession) {
-            setProfile(null)
-            setLoading(false) // ensure loading stops on sign out
-        } else {
-             // Optional: Refetch profile on session change if needed
-             // For now, we assume the previous fetch covered it or page reload will handle it
-             setLoading(false)
+             setProfile(null) 
         }
+        setLoading(false)
       }
     })
 
@@ -98,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false
       subscription.unsubscribe()
     }
+    // FIX: Dependency array is now safe because 'supabase' is memoized
   }, [supabase])
 
   const signOut = async () => {
