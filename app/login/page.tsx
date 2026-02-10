@@ -6,25 +6,25 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2 } from "lucide-react"
-import { toast } from "sonner"
-import { useAuth } from "@/app/providers/AuthProvider" // Import context
+import { Loader2, AlertCircle } from "lucide-react" // Import Alert Icon
+import { useAuth } from "@/app/providers/AuthProvider"
 
 function LoginForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   
-  // Local loading state for the BUTTON only
+  // New state for explicit error messages
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  
   const [isSubmitting, setIsSubmitting] = useState(false)
   
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
-  const { user } = useAuth() // specific hook usage
+  const { user } = useAuth() 
 
-  const message = searchParams.get("message")
+  const urlMessage = searchParams.get("message")
 
-  // Redirect logic: Only if user is ALREADY logged in
   if (user) {
     router.push("/dashboard")
     return <div className="text-center p-10">Redirecting to dashboard...</div>
@@ -33,6 +33,7 @@ function LoginForm() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setErrorMsg(null) // Clear previous errors
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -41,15 +42,18 @@ function LoginForm() {
       })
 
       if (error) {
-        toast.error("Login Failed", { description: error.message })
+        // Show the error on screen
+        setErrorMsg(error.message) 
         setIsSubmitting(false)
         return
       }
 
+      // If successful, refresh and go
+      router.refresh() 
       router.push("/dashboard")
-      router.refresh()
+      
     } catch (err) {
-      toast.error("An unexpected error occurred")
+      setErrorMsg("An unexpected network error occurred.")
       setIsSubmitting(false)
     }
   }
@@ -61,9 +65,18 @@ function LoginForm() {
         <p className="text-gray-500">Enter your credentials to access the portal</p>
       </div>
 
-      {message && (
-        <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
-          {message}
+      {/* URL Messages (Middleware Redirects) */}
+      {urlMessage && (
+        <div className="p-3 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md">
+          {urlMessage}
+        </div>
+      )}
+
+      {/* Login Errors (Explicit Red Box) */}
+      {errorMsg && (
+        <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+          <AlertCircle className="w-4 h-4" />
+          <span>{errorMsg}</span>
         </div>
       )}
 
