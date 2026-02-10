@@ -1,7 +1,5 @@
 "use server"
 
-"use server"
-
 import { createClient } from "@/lib/supabase/server" // Ensure this path is correct for your project
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
@@ -78,43 +76,4 @@ export async function submitJobMatch(data: any) {
   // We can implement this later
   console.log("Job Match Placeholder", data)
   return { success: true }
-}
-
-export async function submitJobApplication(data: {
-  clientName: string
-  jobTitle: string
-  company: string
-  applicationUrl: string
-  resumeVersion: string
-  coverLetterVersion: string
-  notes?: string
-}) {
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 1000))
-
-  console.log("Job application submitted:", data)
-
-  return {
-    success: true,
-    message: "Application submitted successfully",
-    data,
-  }
-}
-
-export async function submitJobMatch(data: {
-  clientName: string
-  jobUrl: string
-  matchScore?: number
-  notes?: string
-}) {
-  // Simulate API call
-  await new Promise((resolve) => setTimeout(resolve, 1000))
-
-  console.log("Job match submitted:", data)
-
-  return {
-    success: true,
-    message: "Job match recorded successfully",
-    data,
-  }
 }
