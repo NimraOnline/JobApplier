@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Building2, Lock, Mail } from "lucide-react"
+import { Building2, Loader2, Lock, Mail } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast" // Assuming shadcn/ui toast
 import { createClient } from '@/lib/supabase/client' // Import Supabase client
 
@@ -99,8 +99,15 @@ export default function LoginPage() {
                 />
               </div>
             </div>
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign In"}
+            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-70" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign In"
+              )}
             </Button>
           </form>
         </CardContent>
