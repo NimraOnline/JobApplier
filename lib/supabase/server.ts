@@ -8,6 +8,10 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // 1. Tell it to look for our unique cookie name
+      cookieOptions: {
+        name: 'employee-auth-token',
+      },
       cookies: {
         getAll() {
           return cookieStore.getAll()
@@ -18,7 +22,9 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             )
           } catch {
-            // Handled for Server Components
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
           }
         },
       },
