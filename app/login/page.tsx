@@ -7,13 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, AlertCircle } from "lucide-react" // Import Alert Icon
-import { useAuth } from "@/app/providers/AuthProvider"
-
 function LoginForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   
-  // New state for explicit error messages
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -21,14 +18,8 @@ function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
-  const { user } = useAuth() 
 
   const urlMessage = searchParams.get("message")
-
-  if (user) {
-    router.push("/dashboard")
-    return <div className="text-center p-10">Redirecting to dashboard...</div>
-  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()

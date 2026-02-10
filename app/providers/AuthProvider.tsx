@@ -1,5 +1,7 @@
 "use client"
 
+import React from "react"
+
 import { createContext, useContext, useEffect, useState, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { User, Session } from "@supabase/supabase-js"
@@ -56,40 +58,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(currentSession.user)
         }
 
-        // Fetch profile
-        const { data: userProfile } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('id', currentSession.user.id)
-          .single()
+        try {
+          const { data: userProfile } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('id', currentSession.user.id)
+            .single()
+
+          if (mounted) {
+            setProfile(userProfile)
+          }
+        } catch {
+          // Profile fetch failed, continue without it
+        }
 
         if (mounted) {
-          setProfile(userProfile)
           setLoading(false)
         }
 
-      } catch (err) {
-        console.error("Auth init error:", err)
-        if (mounted) setLoading(false)
+      } catch {
+        // Auth session fetch failed (e.g. network error), fail gracefully
+        if (mounted) {
+          setSession(null)
+          setUser(null)
+          setProfile(null)
+          setLoading(false)
+        }
       }
     }
 
     getSession()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      if (mounted) {
-        setSession(newSession)
-        setUser(newSession?.user ?? null)
-        if (!newSession) {
-             setProfile(null) 
+    let subscription: { unsubscribe: () => void } | undefined
+
+    try {
+      const { data } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+        if (mounted) {
+          setSession(newSession)
+          setUser(newSession?.user ?? null)
+          if (!newSession) {
+            setProfile(null)
+          }
+          setLoading(false)
         }
-        setLoading(false)
-      }
-    })
+      })
+      subscription = data.subscription
+    } catch {
+      // Auth listener failed, continue without it
+    }
 
     return () => {
       mounted = false
-      subscription.unsubscribe()
+      subscription?.unsubscribe()
     }
     // FIX: Dependency array is now safe because 'supabase' is memoized
   }, [supabase])
