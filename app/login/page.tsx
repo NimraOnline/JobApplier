@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
-import { useRouter } from "next/navigation" // Import useRouter
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,8 +16,10 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const { toast } = useToast() // Initialize toast
-  const supabase = createClient() // Initialize Supabase client
+  const searchParams = useSearchParams()
+  const message = searchParams.get("message")
+  const { toast } = useToast()
+  const supabase = createClient()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,6 +57,11 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-2xl font-bold text-gray-900">Employee Portal</CardTitle>
           <CardDescription className="text-gray-600">Sign in to access your dashboard and tools</CardDescription>
+          {message && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-md px-4 py-3">
+              {message}
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
