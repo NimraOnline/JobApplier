@@ -10,7 +10,8 @@ import { SettingsContent } from "@/components/settings-content"
 
 export function DashboardClientWrapper({ user, profile, initialClients }: any) {
   const { activeTab, handleTabChange } = useTabsSimple()
-
+  const isManager = profile?.role === 'manager' || profile?.role === 'admin'
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-cyan-50/30">
       <TopNav 
