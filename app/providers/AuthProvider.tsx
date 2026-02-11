@@ -62,20 +62,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Main initialization logic
     const initializeAuth = async () => {
       try {
-        // 1. Get initial session
         const { data: { session: initialSession } } = await supabase.auth.getSession()
 
-        if (mounted) {
-          setSession(initialSession)
-          setUser(initialSession?.user ?? null)
-        }
+        if (!mounted) return
 
-        // 2. If we have a user, fetch their profile
+        setSession(initialSession)
+        setUser(initialSession?.user ?? null)
+
         if (initialSession?.user) {
           await fetchProfile(initialSession.user.id)
         }
-      } catch (error) {
-        console.error("Auth initialization failed:", error)
+      } catch {
+        // Network or abort errors - fail silently in preview
       } finally {
         if (mounted) setLoading(false)
       }
@@ -83,29 +81,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initializeAuth()
 
-    // 3. Listen for changes (Sign in, Token Refresh, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        if (mounted) {
+    let subscription: { unsubscribe: () => void } | undefined
+
+    try {
+      const { data } = supabase.auth.onAuthStateChange(
+        async (event, newSession) => {
+          if (!mounted) return
           setSession(newSession)
           setUser(newSession?.user ?? null)
-          
+
           if (newSession?.user) {
-            // Only fetch profile if we don't have it or user changed
             await fetchProfile(newSession.user.id)
           } else {
             setProfile(null)
           }
-          
+
           setLoading(false)
-          router.refresh() // Refresh Server Components when auth changes
+          router.refresh()
         }
-      }
-    )
+      )
+      subscription = data.subscription
+    } catch {
+      // Listener setup failed - continue without real-time auth updates
+    }
 
     return () => {
       mounted = false
-      subscription.unsubscribe()
+      subscription?.unsubscribe()
     }
   }, [supabase, router])
 
