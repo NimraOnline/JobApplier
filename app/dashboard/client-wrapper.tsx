@@ -32,6 +32,12 @@ export function DashboardClientWrapper({ user, profile, initialClients }: any) {
         {activeTab === 'generate-edit' && <GenerateEditContent />}
         
         {activeTab === 'settings' && <SettingsContent />}
+        {activeTab === 'assignments' && isManager && (
+         <AssignmentsContent 
+           employees={managerData?.employees} 
+           allClients={managerData?.clients} 
+         />
+       )}
       </main>
     </div>
   )
