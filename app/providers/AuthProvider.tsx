@@ -42,7 +42,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true
 
-    // Function to fetch full profile data
+    // Suppress AbortError from Supabase auth internals in preview
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      if (
+        event.reason?.name === "AbortError" ||
+        (event.reason instanceof Error && event.reason.message?.includes("signal is aborted")) ||
+        (event.reason instanceof TypeError && event.reason.message === "Failed to fetch")
+      ) {
+        event.preventDefault()
+      }
+    }
+    window.addEventListener("unhandledrejection", handleUnhandledRejection)
+
     const fetchProfile = async (userId: string) => {
       try {
         const { data } = await supabase
@@ -54,12 +65,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (mounted && data) {
           setProfile(data)
         }
-      } catch (error) {
-        console.error("Error fetching profile:", error)
+      } catch {
+        // Profile fetch failed, continue
       }
     }
 
-    // Main initialization logic
     const initializeAuth = async () => {
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession()
@@ -73,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await fetchProfile(initialSession.user.id)
         }
       } catch {
-        // Network or abort errors - fail silently in preview
+        // Network or abort errors - fail silently
       } finally {
         if (mounted) setLoading(false)
       }
@@ -85,29 +95,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const { data } = supabase.auth.onAuthStateChange(
-        async (event, newSession) => {
-          if (!mounted) return
-          setSession(newSession)
-          setUser(newSession?.user ?? null)
+        async (_event, newSession) => {
+          try {
+            if (!mounted) return
+            setSession(newSession)
+            setUser(newSession?.user ?? null)
 
-          if (newSession?.user) {
-            await fetchProfile(newSession.user.id)
-          } else {
-            setProfile(null)
+            if (newSession?.user) {
+              await fetchProfile(newSession.user.id)
+            } else {
+              setProfile(null)
+            }
+
+            setLoading(false)
+            router.refresh()
+          } catch {
+            // Swallow errors inside the callback
           }
-
-          setLoading(false)
-          router.refresh()
         }
       )
       subscription = data.subscription
     } catch {
-      // Listener setup failed - continue without real-time auth updates
+      // Listener setup failed
     }
 
     return () => {
       mounted = false
       subscription?.unsubscribe()
+      window.removeEventListener("unhandledrejection", handleUnhandledRejection)
     }
   }, [supabase, router])
 
