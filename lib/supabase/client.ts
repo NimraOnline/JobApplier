@@ -1,19 +1,19 @@
 import { createBrowserClient } from '@supabase/ssr'
 
-// 1. Define the variable OUTSIDE the function
+// Define the client variable outside the function to keep it in memory
 let client: ReturnType<typeof createBrowserClient> | undefined
 
 export function createClient() {
-  // 2. Check if it already exists
+  // If the client already exists, return it immediately
   if (client) return client
 
-  // 3. Create it ONLY if it doesn't exist
+  // Otherwise, create it once
   client = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookieOptions: {
-        name: 'employee-auth-token', // Your unique cookie name
+        name: 'employee-auth-token',
       },
     }
   )
