@@ -8,17 +8,11 @@ import { ClientsContent } from "@/components/clients-content"
 import { DashboardClientWrapper } from "./client-wrapper" // New wrapper we will make below
 
 export default async function DashboardPage() {
-  // 1. Initialize Server Client
   const supabase = await createClient()
-
-  // 2. Check Auth (Securely on Server)
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return redirect('/login')
 
-  if (!user) {
-    return redirect('/login')
-  }
-
-  // 3. Check Role (Securely on Server)
+  // Check Role
   const { data: profile } = await supabase
     .from('user_profiles')
     .select('*')
@@ -26,29 +20,29 @@ export default async function DashboardPage() {
     .single()
 
   const isEmployee = profile && ['employee', 'manager', 'admin'].includes(profile.role)
+  if (!isEmployee) return redirect('/login?message=Access denied')
 
-  if (!isEmployee) {
-    return redirect('/login?message=Access denied')
-  }
+  const isManager = profile?.role === 'manager' || profile?.role === 'admin'
 
-  // 4. Fetch Clients (The "Strategic" part)
-  // We fetch data here so it's ready immediately
-  const { data: clients } = await supabase
+  // Fetch standard data (My Clients)
+  const { data: myClients } = await supabase
     .from("clients")
-    .select(`
-      *,
-      client_assignments!inner(employee_id, is_active)
-    `)
+    .select("*, client_assignments!inner(employee_id, is_active)") 
     .eq("client_assignments.employee_id", user.id)
     .eq("client_assignments.is_active", true)
-    .order("name")
 
-  // 5. Pass data to a Client Component Wrapper
+  // Fetch Manager Data (IF MANAGER)
+  let managerData = null
+  if (isManager) {
+    managerData = await getManagerData()
+  }
+
   return (
     <DashboardClientWrapper 
       user={user} 
       profile={profile} 
-      initialClients={clients || []} 
+      initialClients={myClients || []}
+      managerData={managerData} // <--- Pass this down
     />
   )
 }
