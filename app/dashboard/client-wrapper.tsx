@@ -18,6 +18,7 @@ export function DashboardClientWrapper({ user, profile, initialClients }: any) {
         onTabChange={(tab) => handleTabChange(tab as TabId)} 
         userFullName={profile?.full_name} 
         userRole={profile?.role}
+        isManager={isManager} // Pass this so TopNav can show the extra tab
       />
       
       <main className="p-6">
