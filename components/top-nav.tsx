@@ -32,13 +32,12 @@ export function TopNav({ activeTab, onTabChange }: TopNavProps) {
   // 1. Get the shared supabase instance from context
   const { supabase, user, profile } = useAuth()
 
-  // 2. The Robust Sign Out Function
   const handleSignOut = async () => {
-    // Await the sign out from Supabase
-    await supabase.auth.signOut()
-    
-    // FORCE a hard refresh to the login page.
-    // This clears the browser cache and prevents Middleware loops.
+    try {
+      await supabase.auth.signOut()
+    } catch {
+      // Sign out API call may fail in preview - continue to redirect
+    }
     window.location.href = "/login"
   }
 
