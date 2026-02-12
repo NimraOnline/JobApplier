@@ -1,3 +1,4 @@
+// middleware.ts
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -45,7 +46,6 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    // --- DEBUGGING LOGS ---
     if (error) {
       console.error("MIDDLEWARE DB ERROR:", error.message, "Code:", error.code)
     }
@@ -58,23 +58,27 @@ export async function middleware(request: NextRequest) {
     const isEmployee = profile && ['employee', 'manager', 'admin'].includes(profile.role)
 
     if (!isEmployee) {
-      // If we found a role but it's just 'client', redirect
-      // If profile is null, it's likely an RLS permission issue
       const reason = profile ? `Role is ${profile.role}` : (error ? `DB Error: ${error.code}` : "Profile not found")
-      
       url.pathname = '/login'
       url.searchParams.set('message', `Access denied. (${reason})`)
-      
-      const redirectResponse = NextResponse.redirect(url)
-      // We don't call signOut here yet to avoid infinite loops while debugging
-      return redirectResponse
+      return NextResponse.redirect(url)
     }
   }
 
-  // C. Login Page logic
+  // C. Login Page logic – FIXED
   if (url.pathname.startsWith('/login') && user) {
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
+    // Only redirect to dashboard if the user is an employee
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (profile && ['employee', 'manager', 'admin'].includes(profile.role)) {
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
+    // Otherwise stay on login page (no redirect)
   }
 
   return supabaseResponse
