@@ -1,6 +1,7 @@
 "use client"
 
 import { useAuth } from "@/app/providers/AuthProvider"
+import { signOutAction } from "@/app/actions/auth" // Server action
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -10,7 +11,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { LayoutDashboard, Users, Bot, LogOut, Mail, Building2, ChevronDown, UserPlus } from "lucide-react"
+import {
+  LayoutDashboard,
+  Users,
+  Bot,
+  LogOut,
+  Mail,
+  Building2,
+  ChevronDown,
+  UserPlus,
+} from "lucide-react"
 
 interface TopNavProps {
   activeTab: string
@@ -20,7 +30,6 @@ interface TopNavProps {
 export function TopNav({ activeTab, onTabChange }: TopNavProps) {
   const { user, profile } = useAuth()
 
-  // Determine if user is a manager or admin
   const isManager = profile?.role === 'manager' || profile?.role === 'admin'
 
   // Navigation items – conditionally include "Add Client"
@@ -32,12 +41,7 @@ export function TopNav({ activeTab, onTabChange }: TopNavProps) {
   ]
 
   const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut()
-    } catch {
-      // Sign out API call may fail in preview - continue to redirect
-    }
-    window.location.href = "/login"
+    await signOutAction() // Redirects to /login – no further code runs
   }
 
   const displayName = profile?.full_name || user?.email?.split('@')[0] || "Employee"
