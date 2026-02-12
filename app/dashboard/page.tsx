@@ -40,38 +40,43 @@ export default async function DashboardPage() {
   let managerData = { employees: [], allClients: [] }
 
   if (isManager) {
-    try {
-      // Fetch all employees for the assignment dropdown
-      const { data: empData } = await supabase
-        .from('user_profiles')
-        .select('id, full_name, role')
-        .in('role', ['employee', 'manager'])
-        .eq('is_active', true)
+  try {
+    // Fetch employees
+    const { data: empData } = await supabase
+      .from('user_profiles')
+      .select('id, full_name, role')
+      .in('role', ['employee', 'manager'])
+      .eq('is_active', true)
 
-      // Fetch all clients (to see who needs assigning)
-      // Note: We use a simpler select here to avoid join errors
-      const { data: cliData } = await supabase
-        .from('clients')
-        .select('id, name, email, status')
-        .order('name')
+    // Fetch all clients (simplified)
+    const { data: cliData } = await supabase
+      .from('clients')
+      .select('id, name, email, status')
+      .order('name')
 
-      managerData = {
-        employees: empData || [],
-        allClients: cliData || []
-      }
-    } catch (err) {
-      console.error("Manager data fetch failed:", err)
-      // We don't crash the page, we just pass empty manager data
+    // 🔥 NEW: Fetch available client tiers
+    const { data: tiersData } = await supabase
+      .from('client_tiers')
+      .select('id, name, monthly_price')
+      .order('monthly_price')
+
+    managerData = {
+      employees: empData || [],
+      allClients: cliData || [],
+      tiers: tiersData || []
     }
+  } catch (err) {
+    console.error("Manager data fetch failed:", err)
   }
+}
 
-  return (
-    <DashboardClientWrapper 
-      user={user} 
-      profile={profile} 
-      initialClients={myClients || []}
-      managerData={managerData}
-      isManager={isManager}
-    />
-  )
+return (
+  <DashboardClientWrapper 
+    user={user} 
+    profile={profile} 
+    initialClients={myClients || []}
+    managerData={managerData}
+    isManager={isManager}
+  />
+)
 }
