@@ -23,7 +23,7 @@ export async function getManagerData() {
   const { data: employees } = await supabase
     .from('user_profiles')
     .select('id, full_name, role')
-    .in('role', ['employee', 'manager']) -- Managers can assign to other managers too
+    .in('role', ['employee', 'manager'])
     .eq('is_active', true)
     .order('full_name')
 
