@@ -7,19 +7,16 @@ import { DashboardContent } from "@/components/dashboard-content"
 import { ClientsContent } from "@/components/clients-content"
 import { GenerateEditContent } from "@/components/generate-edit-content"
 import { SettingsContent } from "@/components/settings-content"
+import { AddClientContent } from "@/components/add-client-content" // <-- Import
 
-export function DashboardClientWrapper({ user, profile, initialClients }: any) {
+export function DashboardClientWrapper({ user, profile, initialClients, managerData, isManager }: any) {
   const { activeTab, handleTabChange } = useTabsSimple()
-  const isManager = profile?.role === 'manager' || profile?.role === 'admin'
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-cyan-50/30">
       <TopNav 
         activeTab={activeTab} 
         onTabChange={(tab) => handleTabChange(tab as TabId)} 
-        userFullName={profile?.full_name} 
-        userRole={profile?.role}
-        isManager={isManager} // Pass this so TopNav can show the extra tab
       />
       
       <main className="p-6">
@@ -34,12 +31,14 @@ export function DashboardClientWrapper({ user, profile, initialClients }: any) {
         {activeTab === 'generate-edit' && <GenerateEditContent />}
         
         {activeTab === 'settings' && <SettingsContent />}
-        {activeTab === 'assignments' && isManager && (
-         <AssignmentsContent 
-           employees={managerData?.employees} 
-           allClients={managerData?.clients} 
-         />
-       )}
+
+        {/* 🔥 NEW: Add Client tab – only visible to managers */}
+        {activeTab === 'add-client' && isManager && (
+          <AddClientContent 
+            tiers={managerData?.tiers || []} 
+            userId={user.id}
+          />
+        )}
       </main>
     </div>
   )
