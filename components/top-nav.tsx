@@ -1,10 +1,6 @@
 "use client"
 
-// Remove "useRouter" and "createClient" imports, we don't need them directly anymore
-// import { useRouter } from "next/navigation" 
-// import { createClient } from "@/lib/supabase/client"
-
-import { useAuth } from "@/app/providers/AuthProvider" // Use our shared context
+import { useAuth } from "@/app/providers/AuthProvider"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -14,14 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { LayoutDashboard, Users, Bot, LogOut, Mail, Building2, ChevronDown } from "lucide-react"
-
-// ... (Keep the navigation array the same) ...
-const navigation = [
-  { title: "Dashboard", icon: LayoutDashboard, id: "dashboard" },
-  { title: "Clients", icon: Users, id: "clients" },
-  { title: "Generate & Edit", icon: Bot, id: "generate-edit" },
-]
+import { LayoutDashboard, Users, Bot, LogOut, Mail, Building2, ChevronDown, UserPlus } from "lucide-react"
 
 interface TopNavProps {
   activeTab: string
@@ -29,8 +18,18 @@ interface TopNavProps {
 }
 
 export function TopNav({ activeTab, onTabChange }: TopNavProps) {
-  // 1. Get the shared supabase instance from context
-  const { supabase, user, profile } = useAuth()
+  const { user, profile } = useAuth()
+
+  // Determine if user is a manager or admin
+  const isManager = profile?.role === 'manager' || profile?.role === 'admin'
+
+  // Navigation items – conditionally include "Add Client"
+  const navigation = [
+    { title: "Dashboard", icon: LayoutDashboard, id: "dashboard" },
+    { title: "Clients", icon: Users, id: "clients" },
+    { title: "Generate & Edit", icon: Bot, id: "generate-edit" },
+    ...(isManager ? [{ title: "Add Client", icon: UserPlus, id: "add-client" }] : []),
+  ]
 
   const handleSignOut = async () => {
     try {
@@ -53,7 +52,7 @@ export function TopNav({ activeTab, onTabChange }: TopNavProps) {
     <nav className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 border-b border-blue-700 shadow-lg">
       <div className="flex items-center justify-between px-6 py-4">
         
-        {/* ... (Left side - Logo and Navigation code stays exactly the same) ... */}
+        {/* Left side - Logo and Navigation */}
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
