@@ -5,7 +5,7 @@ import React, { createContext, useContext, useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { User, Session } from "@supabase/supabase-js"
 import { useRouter } from "next/navigation"
-import { signOutAction } from "@/app/actions/auth" // <--- Import the server action
+import { signOutAction } from "@/app/actions/auth" 
 
 // 1. Define the Context Shape
 interface AuthContextType {
