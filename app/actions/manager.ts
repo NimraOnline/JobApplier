@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 
 export async function getManagerData() {
   const supabase = await createClient()
-  
+
   // 1. Security Check
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Unauthorized" }
@@ -23,12 +23,11 @@ export async function getManagerData() {
   const { data: employees } = await supabase
     .from('user_profiles')
     .select('id, full_name, role')
-    .in('role', ['employee', 'manager'])
+    .in('role', ['employee', 'manager']) // <--- FIXED COMMENT SYNTAX
     .eq('is_active', true)
     .order('full_name')
 
   // 3. Fetch Unassigned or All Clients
-  // (Adjust logic depending if you want to see re-assignments)
   const { data: clients } = await supabase
     .from('clients')
     .select(`
