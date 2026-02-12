@@ -19,6 +19,11 @@ export const tabConfig = {
     label: "Settings",
     component: "SettingsContent",
   },
+    "add-client": {
+    id: "add-client",
+    label: "Add Client",
+    component: "AddClientContent",
+  },
 } as const
 
 export type TabId = keyof typeof tabConfig
