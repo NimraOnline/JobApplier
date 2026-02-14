@@ -4,6 +4,10 @@ import { redirect } from "next/navigation"
 import { DashboardClientWrapper } from "./client-wrapper"
 
 export default async function DashboardPage() {
+    console.log('🔍 DashboardPage env check:', {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL ? '✅ present' : '❌ missing',
+    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? '✅ present' : '❌ missing',
+  });
   try {
     console.log('🚀 DashboardPage server component started')
     
