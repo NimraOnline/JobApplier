@@ -23,23 +23,27 @@ interface Tier {
 interface AddClientContentProps {
   tiers: Tier[]
   userId: string
-  isAdmin: boolean // <-- new prop
+  isAdmin: boolean
 }
 
 export function AddClientContent({ tiers, userId, isAdmin }: AddClientContentProps) {
   const [state, formAction, isPending] = useActionState(createClientAction, null)
   const [showPassword, setShowPassword] = useState(false)
+  const [selectedRole, setSelectedRole] = useState("client")
+  const [selectedTier, setSelectedTier] = useState(tiers[0]?.id?.toString() || "")
 
   useEffect(() => {
     if (state?.success) {
-      const form = document.getElementById("add-client-form") as HTMLFormElement
+      const form = document.getElementById("add-user-form") as HTMLFormElement
       form?.reset()
+      setSelectedRole("client")
+      setSelectedTier(tiers[0]?.id?.toString() || "")
     }
-  }, [state])
+  }, [state, tiers])
 
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow dark:bg-zinc-900 border dark:border-zinc-800">
-      <h2 className="text-2xl font-bold mb-6">Create New User Account</h2>
+      <h2 className="text-2xl font-bold mb-6">Create New User</h2>
 
       {state?.success && (
         <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md flex items-center gap-2 text-green-700">
@@ -55,8 +59,11 @@ export function AddClientContent({ tiers, userId, isAdmin }: AddClientContentPro
         </div>
       )}
 
-      <form id="add-client-form" action={formAction} className="space-y-4">
+      <form id="add-user-form" action={formAction} className="space-y-4">
         <input type="hidden" name="createdBy" value={userId} />
+        {/* Hidden inputs for custom selects */}
+        <input type="hidden" name="role" value={selectedRole} />
+        <input type="hidden" name="tierId" value={selectedTier} />
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -64,22 +71,24 @@ export function AddClientContent({ tiers, userId, isAdmin }: AddClientContentPro
             <Input id="name" name="name" placeholder="John Doe" required disabled={isPending} />
           </div>
 
-          {/* Role selector – only visible to admins */}
-          {isAdmin && (
-            <div className="space-y-2">
-              <Label htmlFor="role">User Role</Label>
-              <Select name="role" defaultValue="client" required disabled={isPending}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="client">Client</SelectItem>
-                  <SelectItem value="employee">Employee</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          {/* Role selector */}
+          <div className="space-y-2">
+            <Label htmlFor="role-select">Role</Label>
+            <Select 
+              value={selectedRole}
+              onValueChange={(val) => setSelectedRole(val)}
+              disabled={isPending}
+            >
+              <SelectTrigger id="role-select">
+                <SelectValue placeholder="Select role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="client">Client</SelectItem>
+                <SelectItem value="employee">Employee</SelectItem>
+                {isAdmin && <SelectItem value="manager">Manager</SelectItem>}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -110,25 +119,37 @@ export function AddClientContent({ tiers, userId, isAdmin }: AddClientContentPro
           <p className="text-xs text-gray-500">Must be at least 6 characters.</p>
         </div>
 
-        {/* Tier selection (always visible, but server will validate only for clients) */}
-        <div className="space-y-2 border-t pt-4">
-          <Label htmlFor="tierId">Subscription Tier (for clients)</Label>
-          <Select name="tierId" defaultValue={String(tiers[0]?.id || "")} disabled={isPending}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a tier" />
-            </SelectTrigger>
-            <SelectContent>
-              {tiers.map((tier) => (
-                <SelectItem key={tier.id} value={String(tier.id)}>
-                  {tier.name} (${tier.monthly_price}/mo)
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Tier selection – only shown when role is 'client' */}
+        {selectedRole === 'client' && (
+          <div className="space-y-2 border-t pt-4">
+            <Label htmlFor="tier-select">Subscription Tier</Label>
+            {tiers.length === 0 ? (
+              <p className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
+                No tiers configured. Please contact an administrator.
+              </p>
+            ) : (
+              <Select 
+                value={selectedTier}
+                onValueChange={(val) => setSelectedTier(val)}
+                disabled={isPending}
+              >
+                <SelectTrigger id="tier-select">
+                  <SelectValue placeholder="Select a tier" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tiers.map((tier) => (
+                    <SelectItem key={tier.id} value={String(tier.id)}>
+                      {tier.name} (${tier.monthly_price}/mo)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        )}
 
         <Button type="submit" className="w-full" disabled={isPending}>
-          {isPending ? "Processing..." : "Create User Account"}
+          {isPending ? "Creating..." : "Create User"}
         </Button>
       </form>
     </div>
