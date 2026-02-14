@@ -33,6 +33,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AuthProvider> {/* <--- Wrap children with AuthProvider */}
           {children}
+          <AuthStateDebugger /> {/* <--- Add it here */}
         </AuthProvider>
         <Toaster /> {/* <--- Make sure this is present if using shadcn/ui toast */}
       </body>
