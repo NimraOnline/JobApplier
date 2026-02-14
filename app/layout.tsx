@@ -5,6 +5,7 @@ import "./globals.css"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "./providers/AuthProvider" // <--- Import AuthProvider
 import { AuthStateDebugger } from "@/components/debug/AuthStateDebugger"
+export const dynamic = 'force-dynamic' // <--- ADD THIS LINE
 // import { ToasterProvider } from './providers/ToasterProvider'; // If you have a custom ToasterProvider that wraps shadcn/ui Toaster
 
 const geistSans = Geist({
