@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "./providers/AuthProvider" // <--- Import AuthProvider
+import { AuthStateDebugger } from "@/components/debug/AuthStateDebugger"
 // import { ToasterProvider } from './providers/ToasterProvider'; // If you have a custom ToasterProvider that wraps shadcn/ui Toaster
 
 const geistSans = Geist({
