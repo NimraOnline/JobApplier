@@ -1,9 +1,11 @@
 "use client"
 
 import { useAuth } from "@/app/providers/AuthProvider"
-import { signOutAction } from "@/app/actions/auth" // Server action
+import { signOutAction } from "@/app/actions/auth" 
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+// Import Skeleton for the loading state
+import { Skeleton } from "@/components/ui/skeleton" 
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,11 +30,11 @@ interface TopNavProps {
 }
 
 export function TopNav({ activeTab, onTabChange }: TopNavProps) {
-  const { user, profile } = useAuth()
+  // 1. Destructure 'loading' from useAuth
+  const { user, profile, loading } = useAuth()
 
   const isManager = profile?.role === 'manager' || profile?.role === 'admin'
 
-  // Navigation items – conditionally include "Add Client"
   const navigation = [
     { title: "Dashboard", icon: LayoutDashboard, id: "dashboard" },
     { title: "Clients", icon: Users, id: "clients" },
@@ -41,9 +43,10 @@ export function TopNav({ activeTab, onTabChange }: TopNavProps) {
   ]
 
   const handleSignOut = async () => {
-    await signOutAction() // Redirects to /login – no further code runs
+    await signOutAction()
   }
 
+  // Calculate display values only if available
   const displayName = profile?.full_name || user?.email?.split('@')[0] || "Employee"
   const displayRole = profile?.role || "Team Member"
   const userEmail = user?.email || "No email"
@@ -88,50 +91,63 @@ export function TopNav({ activeTab, onTabChange }: TopNavProps) {
         </div>
 
         {/* Right side - User Profile */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
-            >
-              <Avatar className="w-8 h-8 ring-2 ring-white/30">
-                <AvatarImage src="" /> 
-                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-semibold">
-                  {getInitials(displayName)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="text-left hidden md:block">
-                <p className="text-sm font-medium text-white truncate max-w-[150px]">
-                  {displayName}
-                </p>
-                <p className="text-xs text-blue-100 capitalize">
-                  {displayRole}
+        
+        {/* 2. LOADING STATE CHECK */}
+        {/* If loading, show a skeleton box instead of wrong data */}
+        {loading ? (
+          <div className="flex items-center gap-3 px-3 py-2">
+             <Skeleton className="h-8 w-8 rounded-full bg-white/20" />
+             <div className="hidden md:block space-y-1">
+               <Skeleton className="h-4 w-24 bg-white/20" />
+               <Skeleton className="h-3 w-16 bg-white/20" />
+             </div>
+          </div>
+        ) : (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
+              >
+                <Avatar className="w-8 h-8 ring-2 ring-white/30">
+                  <AvatarImage src="" /> 
+                  <AvatarFallback className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-semibold">
+                    {getInitials(displayName)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="text-left hidden md:block">
+                  <p className="text-sm font-medium text-white truncate max-w-[150px]">
+                    {displayName}
+                  </p>
+                  <p className="text-xs text-blue-100 capitalize">
+                    {displayRole}
+                  </p>
+                </div>
+                <ChevronDown className="w-4 h-4 text-blue-100" />
+              </Button>
+            </DropdownMenuTrigger>
+            
+            <DropdownMenuContent align="end" className="w-64 bg-white/95 backdrop-blur-sm border border-slate-200">
+              <div className="px-3 py-2">
+                <p className="text-sm font-medium text-slate-900">{displayName}</p>
+                <p className="text-xs text-slate-600 flex items-center gap-1 mt-1 truncate">
+                  <Mail className="w-3 h-3 flex-shrink-0" />
+                  <span className="truncate">{userEmail}</span>
                 </p>
               </div>
-              <ChevronDown className="w-4 h-4 text-blue-100" />
-            </Button>
-          </DropdownMenuTrigger>
-          
-          <DropdownMenuContent align="end" className="w-64 bg-white/95 backdrop-blur-sm border border-slate-200">
-            <div className="px-3 py-2">
-              <p className="text-sm font-medium text-slate-900">{displayName}</p>
-              <p className="text-xs text-slate-600 flex items-center gap-1 mt-1 truncate">
-                <Mail className="w-3 h-3 flex-shrink-0" />
-                <span className="truncate">{userEmail}</span>
-              </p>
-            </div>
-            
-            <DropdownMenuSeparator />
-            
-            <DropdownMenuItem 
-              onClick={handleSignOut}
-              className="text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer focus:text-red-700 focus:bg-red-50"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              
+              <DropdownMenuSeparator />
+              
+              <DropdownMenuItem 
+                onClick={handleSignOut}
+                className="text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer focus:text-red-700 focus:bg-red-50"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
     </nav>
   )
