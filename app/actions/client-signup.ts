@@ -87,22 +87,21 @@ export async function createClientAction(prevState: any, formData: FormData) {
   }
 
   // 7. Insert into user_profiles (using admin client to bypass RLS)
-  const { error: profileError } = await supabaseAdmin
-    .from('user_profiles')
-    .insert({
-      id: authUser.user.id,
-      full_name: name,
-      role: newUserRole,
-      is_active: true,
-      created_at: new Date().toISOString(),
-    })
+  const { error: profileError } = await supabase
+  .from('user_profiles')
+  .upsert({   // <--- CHANGE .insert() TO .upsert()
+    id: authUser.user.id, // Must include the ID for upsert to work
+    full_name: name, 
+    role: role,
+    updated_at: new Date().toISOString()
+  }, {
+    onConflict: 'id' // Tell Supabase to look at the 'id' column for duplicates
+  })
 
-  if (profileError) {
-    console.error("Profile insert failed:", profileError)
-    // Clean up: delete the auth user we just created
-    await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
-    return { error: "Failed to create user profile. Please try again." }
-  }
+if (profileError) {
+  console.error("Profile Error Details:", profileError);
+  return { error: "Failed to save user profile." };
+}
 
   // 8. If the new user is a client, create a record in the clients table
   if (newUserRole === 'client') {
