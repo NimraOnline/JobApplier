@@ -54,32 +54,33 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
     // 5. Fetch Manager-Specific Data
     // This data is used for both "Add Client" and the new "Assignments" tab
+    // Manager data
     let managerData = { employees: [], allClients: [], tiers: [] }
 
     if (isManager) {
       const [empResult, cliResult, tiersResult] = await Promise.allSettled([
-        // List of staff members to assign clients TO
+        // 1. Fetch staff members
         supabase.from('user_profiles')
           .select('id, full_name, role')
           .in('role', ['employee', 'manager'])
           .eq('is_active', true)
-          .order('full_name'),
-        
-        // List of all clients in the system to assign FROM
+          .order('full_name'), // <--- Ensure comma here
+
+        // 2. Fetch all clients with their assignment info (UPDATED)
         supabase.from('clients')
-        .select(`
-          id, 
-          name, 
-          email, 
-          status, 
-          assignments:client_assignments(
-            is_active,
-            employee:user_profiles(full_name)
-          )
-        `)
-        .order('name')
+          .select(`
+            id, 
+            name, 
+            email, 
+            status, 
+            assignments:client_assignments(
+              is_active,
+              employee:user_profiles(full_name)
+            )
+          `)
+          .order('name'), // <--- Ensure comma here
         
-        // List of tiers for the Add Client form
+        // 3. List of tiers for the Add Client form
         supabase.from('client_tiers')
           .select('id, name, monthly_price')
           .order('monthly_price')
