@@ -9,6 +9,11 @@ export const tabConfig = {
     label: "Clients",
     component: "ClientsContent",
   },
+  assignments: {
+    id: "assignments",
+    label: "Assignments",
+    component: "AssignmentsContent",
+  },
   "generate-edit": {
     id: "generate-edit",
     label: "Generate & Edit",
