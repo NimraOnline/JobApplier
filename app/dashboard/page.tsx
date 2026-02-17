@@ -102,6 +102,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         initialClients={myClients || []}
         managerData={managerData}
         isManager={isManager}
+        initialTab={activeTab} // ✅ ADD THIS LINE
       />
     )
   } catch (error) {
