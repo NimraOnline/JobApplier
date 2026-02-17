@@ -16,8 +16,14 @@ export async function createClientAction(prevState: any, formData: FormData) {
 
   if (!session) return { error: "Unauthorized" }
 
-  // 2. Call your Python FastAPI Backend
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"; 
+  // DEBUG LOG - Check your Vercel "Logs" tab or Terminal to see this
+  console.log("--- DEBUG API CALL ---");
+  console.log("Raw Env Var:", process.env.NEXT_PUBLIC_API_URL);
+  console.log("Final URL being used:", API_URL || "http://127.0.0.1:8000");
+  
+  if (!API_URL) {
+      return { error: "System Error: NEXT_PUBLIC_API_URL is not defined in environment variables." }
+  }
 
   try {
     const response = await fetch(`${API_URL}/api/auth/manager/add-client`, {
