@@ -53,52 +53,43 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       .eq("client_assignments.is_active", true)
 
     // 5. Fetch Manager-Specific Data
-    // This data is used for both "Add Client" and the new "Assignments" tab
-    // Manager data
+    // Manager data initialization
     let managerData = { employees: [], allClients: [], tiers: [] }
 
     if (isManager) {
-      console.log('📡 Manager detected, fetching bulk assignment data...')
-      
-      const [empResult, cliResult, tiersResult] = await Promise.allSettled([
-        // 1. Fetch staff members
-        supabase.from('user_profiles')
-          .select('id, full_name, role')
-          .in('role', ['employee', 'manager'])
-          .eq('is_active', true)
-          .order('full_name'),
+      console.log('📡 DEBUG: Fetching as Manager...')
 
-        // 2. Fetch all clients + current assignments
-        // NOTE: No !inner here! We want ALL clients, even unassigned ones.
-        supabase.from('clients')
-          .select(`
-            id, 
-            name, 
-            email, 
-            status, 
-            assignments:client_assignments(
-              is_active,
-              employee:user_profiles(full_name)
-            )
-          `)
-          .order('name'),
-        
-        // 3. List of tiers
-        supabase.from('client_tiers')
-          .select('id, name, monthly_price')
-          .order('monthly_price')
-      ])
+      // 1. Fetch Staff (Verification)
+      const { data: staff, error: staffErr } = await supabase
+        .from('user_profiles')
+        .select('id, full_name, role')
+        .in('role', ['employee', 'manager', 'admin'])
+        .eq('is_active', true)
 
-      // Debug logs to your Terminal (not browser console)
-      if (cliResult.status === 'rejected') console.error('❌ Clients Query Failed:', cliResult.reason);
-      
-      managerData = {
-        employees: empResult.status === 'fulfilled' ? empResult.value.data || [] : [],
-        allClients: cliResult.status === 'fulfilled' ? cliResult.value.data || [] : [],
-        tiers: tiersResult.status === 'fulfilled' ? tiersResult.value.data || [] : []
+      if (staffErr) console.error('❌ Staff Query Error:', staffErr)
+
+      // 2. Fetch Clients (Simplified - NO JOIN first)
+      // If this returns clients, then our Join syntax was the problem.
+      // If this returns 0, then RLS (Database Permissions) is the problem.
+      const { data: rawClients, error: cliErr } = await supabase
+        .from('clients')
+        .select('*') 
+        .order('name')
+
+      if (cliErr) {
+        console.error('❌ Raw Clients Query Error:', cliErr)
+      } else {
+        console.log(`✅ Raw Clients count: ${rawClients?.length || 0}`)
       }
 
-      console.log(`✅ Fetched ${managerData.allClients.length} clients for manager view`);
+      // 3. Fetch Tiers
+      const { data: tiers } = await supabase.from('client_tiers').select('*')
+
+      managerData = {
+        employees: staff || [],
+        allClients: rawClients || [], // We will add the assignment info back once we see data
+        tiers: tiers || []
+      }
     }
 
     // 6. Pass everything to the Client Wrapper
