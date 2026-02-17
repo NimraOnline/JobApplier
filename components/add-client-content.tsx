@@ -34,9 +34,9 @@ export function AddClientContent({ tiers, userId, isAdmin }: AddClientContentPro
   const [selectedRole, setSelectedRole] = useState("client")
   // We keep Tier state to handle the default value reset
   // Inside AddClientContent
-const [selectedTier, setSelectedTier] = useState(
-  tiers.length > 0 ? tiers[0].id.toString() : "1" // Force "1" as hardcoded fallback
-)
+  const [selectedTier, setSelectedTier] = useState(
+    tiers.length > 0 ? tiers[0].id.toString() : "1" // Force "1" as hardcoded fallback
+  )
 
   useEffect(() => {
     if (state?.success) {
