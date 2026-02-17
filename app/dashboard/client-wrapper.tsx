@@ -16,7 +16,8 @@ export function DashboardClientWrapper({
   profile: propProfile, 
   initialClients, 
   managerData, 
-  isManager: propIsManager 
+  isManager: propIsManager ,
+  initialTab // ✅ Receive from props
 }: any) {
   // 1. Get auth context (initialized instantly via props in layout.tsx)
   const { profile: authProfile, user: authUser } = useAuth()
