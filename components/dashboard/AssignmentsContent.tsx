@@ -171,13 +171,13 @@ export function AssignmentsContent({ clients, employees }: AssignmentsContentPro
               ) : (
                 sortedClients.map((client) => {
                   // 1. Safely handle the assignments array
-                  const assignments = Array.isArray(client.assignments) ? client.assignments : [];
+                  const assignments = Array.isArray(client.client_assignments) ? client.client_assignments : [];
                   
                   // 2. Find the active assignment (if one exists)
                   const activeAssignment = assignments.find((a: any) => a.is_active);
                   
                   // 3. Extract the employee name safely
-                  const assignedName = activeAssignment?.employee?.full_name;
+                  const assignedName = activeAssignment?.user_profiles?.full_name;
 
                   return (
                     <TableRow 
