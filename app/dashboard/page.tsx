@@ -2,6 +2,8 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { DashboardClientWrapper } from "./client-wrapper"
+import { getAssignmentData } from "@/app/actions/assignments"
+import { AssignmentsContent } from "@/components/dashboard/AssignmentsContent"
 
 export default async function DashboardPage() {
     console.log('🔍 DashboardPage env check:', {
