@@ -15,7 +15,12 @@ export async function createClientAction(prevState: any, formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const role = formData.get("role") as string;
-  const tierId = formData.get("tierId") as string;
+  
+  // ✅ FIX: Calculate finalTierId BEFORE the fetch call
+  const rawTier = formData.get("tierId");
+  const finalTierId = (rawTier && parseInt(rawTier as string) > 0) 
+    ? parseInt(rawTier as string) 
+    : 1; 
 
   // 1. Get Manager Session
   const supabase = await createActionClient();
@@ -30,11 +35,6 @@ export async function createClientAction(prevState: any, formData: FormData) {
   try {
     // 2. Call the Render Backend
     const response = await fetch(`${API_URL}/api/auth/manager/add-client`, {
-      const rawTier = formData.get("tierId");
-    // If tierId is missing, empty, or 0, force it to 1 (or your default tier ID)
-    const finalTierId = (rawTier && parseInt(rawTier as string) > 0) 
-      ? parseInt(rawTier as string) 
-      : 1; 
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -44,11 +44,11 @@ export async function createClientAction(prevState: any, formData: FormData) {
         username: name,
         email: email,
         password: password,
-        role: role,
-        tier_id: finalTierId
+        role: role || "client",
+        tier_id: finalTierId // ✅ Now using the validated variable
       }),
       // Adding a timeout signal just in case Render is sleeping
-      signal: AbortSignal.timeout(15000) 
+      signal: AbortSignal.timeout(25000) 
     });
 
     if (!response.ok) {
@@ -68,7 +68,6 @@ export async function createClientAction(prevState: any, formData: FormData) {
   } catch (err: any) {
     console.error("Hardcoded Fetch failed:", err);
     
-    // Check if it's a timeout (Render free tier takes 50+ seconds to wake up sometimes)
     if (err.name === 'TimeoutError') {
         return { error: "Backend took too long to respond. It might be waking up. Try again in 30 seconds." };
     }
