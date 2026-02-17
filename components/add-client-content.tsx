@@ -33,7 +33,10 @@ export function AddClientContent({ tiers, userId, isAdmin }: AddClientContentPro
   // We need state for Role to conditionally show the Tier box
   const [selectedRole, setSelectedRole] = useState("client")
   // We keep Tier state to handle the default value reset
-  const [selectedTier, setSelectedTier] = useState(tiers?.[0]?.id?.toString() || "")
+  // Inside AddClientContent
+const [selectedTier, setSelectedTier] = useState(
+  tiers.length > 0 ? tiers[0].id.toString() : "1" // Force "1" as hardcoded fallback
+)
 
   useEffect(() => {
     if (state?.success) {
