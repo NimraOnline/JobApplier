@@ -58,15 +58,18 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     let managerData = { employees: [], allClients: [], tiers: [] }
 
     if (isManager) {
+      console.log('📡 Manager detected, fetching bulk assignment data...')
+      
       const [empResult, cliResult, tiersResult] = await Promise.allSettled([
         // 1. Fetch staff members
         supabase.from('user_profiles')
           .select('id, full_name, role')
           .in('role', ['employee', 'manager'])
           .eq('is_active', true)
-          .order('full_name'), // <--- Ensure comma here
+          .order('full_name'),
 
-        // 2. Fetch all clients with their assignment info (UPDATED)
+        // 2. Fetch all clients + current assignments
+        // NOTE: No !inner here! We want ALL clients, even unassigned ones.
         supabase.from('clients')
           .select(`
             id, 
@@ -78,19 +81,24 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               employee:user_profiles(full_name)
             )
           `)
-          .order('name'), // <--- Ensure comma here
+          .order('name'),
         
-        // 3. List of tiers for the Add Client form
+        // 3. List of tiers
         supabase.from('client_tiers')
           .select('id, name, monthly_price')
           .order('monthly_price')
       ])
 
+      // Debug logs to your Terminal (not browser console)
+      if (cliResult.status === 'rejected') console.error('❌ Clients Query Failed:', cliResult.reason);
+      
       managerData = {
         employees: empResult.status === 'fulfilled' ? empResult.value.data || [] : [],
         allClients: cliResult.status === 'fulfilled' ? cliResult.value.data || [] : [],
         tiers: tiersResult.status === 'fulfilled' ? tiersResult.value.data || [] : []
       }
+
+      console.log(`✅ Fetched ${managerData.allClients.length} clients for manager view`);
     }
 
     // 6. Pass everything to the Client Wrapper
