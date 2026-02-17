@@ -9,6 +9,8 @@ import { ClientsContent } from "@/components/clients-content"
 import { GenerateEditContent } from "@/components/generate-edit-content"
 import { SettingsContent } from "@/components/settings-content"
 import { AddClientContent } from "@/components/add-client-content"
+import { getAssignmentData } from "@/app/actions/assignments"
+import { AssignmentsContent } from "@/components/dashboard/AssignmentsContent"
 
 export function DashboardClientWrapper({ 
   user: propUser, 
@@ -58,6 +60,12 @@ export function DashboardClientWrapper({
             userId={user?.id} // Add optional chaining in case user is null
           />
         )}
+        {activeTab === "assignments" && (
+        <AssignmentsContent 
+          clients={managerData.allClients} 
+          employees={managerData.employees} 
+        />
+      )}
       </main>
     </div>
   )
