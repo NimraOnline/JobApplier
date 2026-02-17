@@ -162,42 +162,78 @@ export function AssignmentsContent({ clients, employees }: AssignmentsContentPro
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedClients.map((client) => {
-                // Find the current active assignment name
-                const activeAssignment = client.assignments?.find((a: any) => a.is_active);
-                const assignedName = activeAssignment?.employee?.full_name;
+  {sortedClients.length === 0 ? (
+    <TableRow>
+      <TableCell colSpan={5} className="h-32 text-center text-muted-foreground italic">
+        No clients found matching current criteria.
+      </TableCell>
+    </TableRow>
+  ) : (
+    sortedClients.map((client) => {
+      // 1. Safely handle the assignments array
+      const assignments = Array.isArray(client.assignments) ? client.assignments : [];
+      
+      // 2. Find the active assignment (if one exists)
+      const activeAssignment = assignments.find((a: any) => a.is_active);
+      
+      // 3. Extract the employee name safely
+      const assignedName = activeAssignment?.employee?.full_name;
 
-                return (
-                  <TableRow key={client.id} className={selectedClientIds.includes(client.id) ? "bg-blue-50/50" : ""}>
-                    <TableCell>
-                      <Checkbox 
-                        checked={selectedClientIds.includes(client.id)}
-                        onCheckedChange={() => {
-                            setSelectedClientIds(prev => prev.includes(client.id) ? prev.filter(i => i !== client.id) : [...prev, client.id])
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell className="font-semibold">{client.name}</TableCell>
-                    <TableCell className="text-slate-500 text-sm">{client.email}</TableCell>
-                    <TableCell>
-                      <span className="capitalize px-2 py-0.5 rounded-full text-[11px] font-bold bg-white border border-slate-200">
-                        {client.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {assignedName ? (
-                        <div className="flex items-center gap-2 text-sm text-green-700 font-medium">
-                          <div className="w-2 h-2 rounded-full bg-green-500" />
-                          {assignedName}
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 text-xs italic">Not assigned</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
+      return (
+        <TableRow 
+          key={client.id} 
+          className={selectedClientIds.includes(client.id) ? "bg-blue-50/50" : "hover:bg-slate-50/50"}
+        >
+          {/* Checkbox Column */}
+          <TableCell>
+            <Checkbox 
+              checked={selectedClientIds.includes(client.id)}
+              onCheckedChange={() => {
+                setSelectedClientIds(prev => 
+                  prev.includes(client.id) 
+                    ? prev.filter(i => i !== client.id) 
+                    : [...prev, client.id]
+                )
+              }}
+            />
+          </TableCell>
+
+          {/* Name Column */}
+          <TableCell className="font-semibold text-slate-900">
+            {client.name}
+          </TableCell>
+
+          {/* Email Column */}
+          <TableCell className="text-slate-500 text-sm">
+            {client.email}
+          </TableCell>
+
+          {/* Status Column */}
+          <TableCell>
+            <span className="capitalize px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 border border-slate-200 text-slate-600">
+              {client.status}
+            </span>
+          </TableCell>
+
+          {/* Assigned To Column */}
+          <TableCell>
+            {assignedName ? (
+              <div className="flex items-center gap-2 text-sm text-blue-700 font-medium bg-blue-50/50 px-2 py-1 rounded-md w-fit">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                {assignedName}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-slate-400 text-xs italic px-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                Not assigned
+              </div>
+            )}
+          </TableCell>
+        </TableRow>
+      );
+    })
+  )}
+</TableBody>
           </Table>
         </CardContent>
       </Card>
