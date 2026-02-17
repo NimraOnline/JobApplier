@@ -40,6 +40,7 @@ export function TopNav({ activeTab, onTabChange }: TopNavProps) {
     { title: "Clients", icon: Users, id: "clients" },
     { title: "Generate & Edit", icon: Bot, id: "generate-edit" },
     ...(isManager ? [{ title: "Add Client", icon: UserPlus, id: "add-client" }] : []),
+    ...(isManager ? [{ title: "Add Client", icon: UserPlus, id: "add-client" }] : []),
   ]
 
   const handleSignOut = async () => {
