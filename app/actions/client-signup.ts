@@ -3,26 +3,29 @@
 import { createActionClient } from "@/lib/supabase/server-action"
 import { revalidatePath } from "next/cache"
 
-/**
- * Server Action to create a client via the FastAPI Backend
- */
 export async function createClientAction(prevState: any, formData: FormData) {
-  // --- HARDCODED URL FOR TESTING ---
-  const API_URL = "https://api-interview-getter.onrender.com";
-  // ----------------------------------
+  // 1. Get the URL from Environment Variables
+  // Note: No "K" at the end of PUBLIC
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+  // 2. Safety Check: If the variable is missing, stop immediately with a clear error
+  if (!API_URL) {
+    console.error("CRITICAL ERROR: NEXT_PUBLIC_API_URL is not defined in environment variables.");
+    return { error: "System configuration error: API_URL is missing. Please check Vercel settings." };
+  }
 
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const role = formData.get("role") as string;
   
-  // ✅ FIX: Calculate finalTierId BEFORE the fetch call
+  // Logic to prevent the "Tier 0" database error
   const rawTier = formData.get("tierId");
   const finalTierId = (rawTier && parseInt(rawTier as string) > 0) 
     ? parseInt(rawTier as string) 
     : 1; 
 
-  // 1. Get Manager Session
+  // 3. Get Manager Session
   const supabase = await createActionClient();
   const { data: { session } } = await supabase.auth.getSession();
 
@@ -30,10 +33,8 @@ export async function createClientAction(prevState: any, formData: FormData) {
     return { error: "Session expired. Please log in again." };
   }
 
-  console.log(`[DEBUG] Calling Backend: ${API_URL}/api/auth/manager/add-client`);
-
   try {
-    // 2. Call the Render Backend
+    // 4. Call the Backend using the variable
     const response = await fetch(`${API_URL}/api/auth/manager/add-client`, {
       method: "POST",
       headers: {
@@ -45,35 +46,31 @@ export async function createClientAction(prevState: any, formData: FormData) {
         email: email,
         password: password,
         role: role || "client",
-        tier_id: finalTierId // ✅ Now using the validated variable
+        tier_id: finalTierId
       }),
-      // Adding a timeout signal just in case Render is sleeping
       signal: AbortSignal.timeout(25000) 
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       return { 
-        error: errorData.detail || `Backend returned error ${response.status}` 
+        error: errorData.detail || `Backend error: ${response.status}` 
       };
     }
 
-    // 3. Success
     revalidatePath("/dashboard");
     return { 
       success: true, 
-      message: "Successfully created user via Render API." 
+      message: "Successfully created user via Backend API." 
     };
 
   } catch (err: any) {
-    console.error("Hardcoded Fetch failed:", err);
-    
+    console.error("Fetch failed:", err);
     if (err.name === 'TimeoutError') {
-        return { error: "Backend took too long to respond. It might be waking up. Try again in 30 seconds." };
+        return { error: "Backend took too long to respond. Try again in a moment." };
     }
-
     return { 
-      error: `Failed to connect to ${API_URL}. Is the backend service active?` 
+      error: `Could not connect to the API at ${API_URL}.` 
     };
   }
 }
