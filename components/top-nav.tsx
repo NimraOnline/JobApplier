@@ -1,11 +1,10 @@
 "use client"
 
 import { useAuth } from "@/app/providers/AuthProvider"
-import { signOutAction } from "@/app/actions/auth" 
+import { signOutAction } from "@/app/actions/auth"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-// Import Skeleton for the loading state
-import { Skeleton } from "@/components/ui/skeleton" 
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,32 +21,41 @@ import {
   Building2,
   ChevronDown,
   UserPlus,
+  UserCheck, // ✅ Added new icon for Assignments
 } from "lucide-react"
 
 interface TopNavProps {
   activeTab: string
   onTabChange: (tab: string) => void
+  profile?: any // ✅ Added profile prop to interface
 }
 
-export function TopNav({ activeTab, onTabChange }: TopNavProps) {
-  // 1. Destructure 'loading' from useAuth
-  const { user, profile, loading } = useAuth()
+export function TopNav({ activeTab, onTabChange, profile: propProfile }: TopNavProps) {
+  // Use propProfile if available (passed from layout/wrapper), otherwise fallback to hook
+  const { user, profile: authProfile, loading } = useAuth()
+  const profile = propProfile || authProfile
 
   const isManager = profile?.role === 'manager' || profile?.role === 'admin'
 
+  // ✅ NAVIGATION ARRAY: Fixed to prevent duplication and added distinct icons
   const navigation = [
     { title: "Dashboard", icon: LayoutDashboard, id: "dashboard" },
-    { title: "Clients", icon: Users, id: "clients" },
+    { title: "My Clients", icon: Users, id: "clients" }, // Renamed to "My Clients" for clarity
     { title: "Generate & Edit", icon: Bot, id: "generate-edit" },
-    ...(isManager ? [{ title: "Add Client", icon: UserPlus, id: "add-client" }] : []),
-    ...(isManager ? [{ title: "Add Client", icon: UserPlus, id: "add-client" }] : []),
   ]
+
+  // Only add Manager items once
+  if (isManager) {
+    navigation.push(
+      { title: "Assignments", icon: UserCheck, id: "assignments" }, // ✅ Different Icon
+      { title: "Add User", icon: UserPlus, id: "add-client" }       // ✅ Different Title/Icon
+    )
+  }
 
   const handleSignOut = async () => {
     await signOutAction()
   }
 
-  // Calculate display values only if available
   const displayName = profile?.full_name || user?.email?.split('@')[0] || "Employee"
   const displayRole = profile?.role || "Team Member"
   const userEmail = user?.email || "No email"
@@ -92,10 +100,7 @@ export function TopNav({ activeTab, onTabChange }: TopNavProps) {
         </div>
 
         {/* Right side - User Profile */}
-        
-        {/* 2. LOADING STATE CHECK */}
-        {/* If loading, show a skeleton box instead of wrong data */}
-        {loading ? (
+        {loading && !profile ? (
           <div className="flex items-center gap-3 px-3 py-2">
              <Skeleton className="h-8 w-8 rounded-full bg-white/20" />
              <div className="hidden md:block space-y-1">
