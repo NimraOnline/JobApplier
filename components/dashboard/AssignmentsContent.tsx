@@ -38,9 +38,8 @@ export function AssignmentsContent({ clients, employees }: AssignmentsContentPro
   const [selectedClientIds, setSelectedClientIds] = useState<string[]>([])
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("")
   const [isPending, setIsPending] = useState(false)
-  const [serverError, setServerError] = useState<string | null>(null) // 3. Error state
+  const [serverError, setServerError] = useState<string | null>(null)
   
-  // 1. Sorting State
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'name', direction: 'asc' })
 
   const handleSort = (key: SortConfig['key']) => {
@@ -50,8 +49,8 @@ export function AssignmentsContent({ clients, employees }: AssignmentsContentPro
     }))
   }
 
-  // Logic to process clients (Sorting)
   const sortedClients = useMemo(() => {
+    if (!clients) return []
     let items = [...clients]
     items.sort((a, b) => {
       const valA = a[sortConfig.key]?.toLowerCase() || ""
@@ -75,16 +74,15 @@ export function AssignmentsContent({ clients, employees }: AssignmentsContentPro
       toast.success(`Successfully assigned ${selectedClientIds.length} clients!`)
       setSelectedClientIds([])
     } else {
-      setServerError(result.error || "An unexpected server error occurred.") // Show error in UI
+      setServerError(result.error || "An unexpected server error occurred.")
       toast.error("Assignment failed")
     }
   }
 
   return (
     <div className="space-y-6">
-      {/* --- SERVER ERROR DISPLAY --- */}
       {serverError && (
-        <Alert variant="destructive" className="animate-in fade-in slide-in-from-top-2">
+        <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Server Error</AlertTitle>
           <AlertDescription>{serverError}</AlertDescription>
@@ -131,7 +129,7 @@ export function AssignmentsContent({ clients, employees }: AssignmentsContentPro
       <Card className="shadow-sm">
         <CardHeader className="bg-slate-50/50 border-b py-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Users className="w-4 h-4 text-slate-500" /> Total Clients ({clients.length})
+            <Users className="w-4 h-4 text-slate-500" /> Total Clients ({clients?.length || 0})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -140,24 +138,22 @@ export function AssignmentsContent({ clients, employees }: AssignmentsContentPro
               <TableRow className="bg-slate-50/30">
                 <TableHead className="w-12">
                   <Checkbox 
-                    checked={selectedClientIds.length === clients.length && clients.length > 0} 
+                    checked={selectedClientIds.length === sortedClients.length && sortedClients.length > 0} 
                     onCheckedChange={() => {
-                        if (selectedClientIds.length === clients.length) setSelectedClientIds([])
-                        else setSelectedClientIds(clients.map(c => c.id))
+                        if (selectedClientIds.length === sortedClients.length) setSelectedClientIds([])
+                        else setSelectedClientIds(sortedClients.map(c => c.id))
                     }}
                   />
                 </TableHead>
-                {/* 1. SORTABLE HEADERS */}
-                <TableHead onClick={() => handleSort('name')} className="cursor-pointer hover:text-blue-600 transition-colors">
+                <TableHead onClick={() => handleSort('name')} className="cursor-pointer hover:text-blue-600">
                   Name <ArrowUpDown className="inline ml-1 w-3 h-3" />
                 </TableHead>
-                <TableHead onClick={() => handleSort('email')} className="cursor-pointer hover:text-blue-600 transition-colors">
+                <TableHead onClick={() => handleSort('email')} className="cursor-pointer hover:text-blue-600">
                   Email <ArrowUpDown className="inline ml-1 w-3 h-3" />
                 </TableHead>
-                <TableHead onClick={() => handleSort('status')} className="cursor-pointer hover:text-blue-600 transition-colors">
+                <TableHead onClick={() => handleSort('status')} className="cursor-pointer hover:text-blue-600">
                   Status <ArrowUpDown className="inline ml-1 w-3 h-3" />
                 </TableHead>
-                {/* 2. NEW COLUMN: ASSIGNED TO */}
                 <TableHead>Currently Assigned To</TableHead>
               </TableRow>
             </TableHeader>
@@ -170,63 +166,39 @@ export function AssignmentsContent({ clients, employees }: AssignmentsContentPro
                 </TableRow>
               ) : (
                 sortedClients.map((client) => {
-                  // 1. Safely handle the assignments array
+                  // Safely access nested assignment data
                   const assignments = Array.isArray(client.client_assignments) ? client.client_assignments : [];
-                  
-                  // 2. Find the active assignment (if one exists)
                   const activeAssignment = assignments.find((a: any) => a.is_active);
-                  
-                  // 3. Extract the employee name safely
                   const assignedName = activeAssignment?.user_profiles?.full_name;
 
                   return (
-                    <TableRow 
-                      key={client.id} 
-                      className={selectedClientIds.includes(client.id) ? "bg-blue-50/50" : "hover:bg-slate-50/50"}
-                    >
-                      {/* Checkbox Column */}
+                    <TableRow key={client.id} className={selectedClientIds.includes(client.id) ? "bg-blue-50/50" : ""}>
                       <TableCell>
                         <Checkbox 
                           checked={selectedClientIds.includes(client.id)}
                           onCheckedChange={() => {
                             setSelectedClientIds(prev => 
-                              prev.includes(client.id) 
-                                ? prev.filter(i => i !== client.id) 
-                                : [...prev, client.id]
+                              prev.includes(client.id) ? prev.filter(i => i !== client.id) : [...prev, client.id]
                             )
                           }}
                         />
                       </TableCell>
-
-                      {/* Name Column */}
-                      <TableCell className="font-semibold text-slate-900">
-                        {client.name}
-                      </TableCell>
-
-                      {/* Email Column */}
-                      <TableCell className="text-slate-500 text-sm">
-                        {client.email}
-                      </TableCell>
-
-                      {/* Status Column */}
+                      <TableCell className="font-semibold">{client.name}</TableCell>
+                      <TableCell className="text-slate-500 text-sm">{client.email}</TableCell>
                       <TableCell>
-                        <span className="capitalize px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 border border-slate-200 text-slate-600">
+                        <span className="capitalize px-2 py-0.5 rounded-full text-[11px] font-bold bg-white border border-slate-200">
                           {client.status}
                         </span>
                       </TableCell>
-
-                      {/* Assigned To Column */}
                       <TableCell>
-                        {<TableCell>
-                          {assignedName ? (
-                            <div className="flex items-center gap-2 text-sm text-blue-700 font-medium">
-                              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                              {assignedName}
-                            </div>
-                          ) : (
-                            <span className="text-slate-400 text-xs italic">Not assigned</span>
-                          )}
-                      </TableCell>
+                        {assignedName ? (
+                          <div className="flex items-center gap-2 text-sm text-blue-700 font-medium">
+                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                            {assignedName}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 text-xs italic">Not assigned</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   );
