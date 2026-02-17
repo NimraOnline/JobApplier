@@ -9,7 +9,6 @@ import { ClientsContent } from "@/components/clients-content"
 import { GenerateEditContent } from "@/components/generate-edit-content"
 import { SettingsContent } from "@/components/settings-content"
 import { AddClientContent } from "@/components/add-client-content"
-import { getAssignmentData } from "@/app/actions/assignments"
 import { AssignmentsContent } from "@/components/dashboard/AssignmentsContent"
 
 export function DashboardClientWrapper({ 
@@ -19,25 +18,25 @@ export function DashboardClientWrapper({
   managerData, 
   isManager: propIsManager 
 }: any) {
-  // Get auth context as fallback
+  // 1. Get auth context (initialized instantly via props in layout.tsx)
   const { profile: authProfile, user: authUser } = useAuth()
   
-  // Use props if provided, otherwise fall back to auth values
+  // 2. Use the most up-to-date profile available
   const profile = propProfile || authProfile
   const user = propUser || authUser
   
-  // Compute isManager – either from prop or from profile role
+  // 3. Compute permissions
   const isManager = propIsManager ?? (profile?.role === 'manager' || profile?.role === 'admin')
   
   const { activeTab, handleTabChange } = useTabsSimple()
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-cyan-50/30">
-      {/* Pass profile to TopNav so it can show manager tab even if AuthProvider is slow */}
       <TopNav 
         activeTab={activeTab} 
         onTabChange={(tab) => handleTabChange(tab as TabId)}
-        profile={profile} // <-- Pass profile down
+        // Ensure TopNav receives the profile for instant "Alice" name rendering
+        profile={profile} 
       />
       
       <main className="p-6">
@@ -53,19 +52,24 @@ export function DashboardClientWrapper({
         
         {activeTab === 'settings' && <SettingsContent />}
 
-        {/* Add Client tab – only visible to managers */}
+        {/* --- MANAGER ONLY TABS --- */}
+        
+        {/* Add Client Tab */}
         {activeTab === 'add-client' && isManager && (
           <AddClientContent 
             tiers={managerData?.tiers || []} 
-            userId={user?.id} // Add optional chaining in case user is null
+            userId={user?.id}
+            isAdmin={profile?.role === 'admin'}
           />
         )}
-        {activeTab === "assignments" && (
-        <AssignmentsContent 
-          clients={managerData.allClients} 
-          employees={managerData.employees} 
-        />
-      )}
+
+        {/* Assignments Tab - Added the 'isManager' guard here ✅ */}
+        {activeTab === "assignments" && isManager && (
+          <AssignmentsContent 
+            clients={managerData?.allClients || []} 
+            employees={managerData?.employees || []} 
+          />
+        )}
       </main>
     </div>
   )
