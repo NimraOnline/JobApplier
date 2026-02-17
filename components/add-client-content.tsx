@@ -29,15 +29,21 @@ interface AddClientContentProps {
 export function AddClientContent({ tiers, userId, isAdmin }: AddClientContentProps) {
   const [state, formAction, isPending] = useActionState(createClientAction, null)
   const [showPassword, setShowPassword] = useState(false)
+  
+  // We need state for Role to conditionally show the Tier box
   const [selectedRole, setSelectedRole] = useState("client")
-  const [selectedTier, setSelectedTier] = useState(tiers[0]?.id?.toString() || "")
+  // We keep Tier state to handle the default value reset
+  const [selectedTier, setSelectedTier] = useState(tiers?.[0]?.id?.toString() || "")
 
   useEffect(() => {
     if (state?.success) {
+      // 1. Reset native inputs
       const form = document.getElementById("add-user-form") as HTMLFormElement
       form?.reset()
+      
+      // 2. Reset custom state
       setSelectedRole("client")
-      setSelectedTier(tiers[0]?.id?.toString() || "")
+      setSelectedTier(tiers?.[0]?.id?.toString() || "")
     }
   }, [state, tiers])
 
@@ -48,7 +54,8 @@ export function AddClientContent({ tiers, userId, isAdmin }: AddClientContentPro
       {state?.success && (
         <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md flex items-center gap-2 text-green-700">
           <CheckCircle2 className="w-4 h-4" />
-          {state.message}
+          {/* Ensure message exists or fallback */}
+          {state.message || "User created successfully!"}
         </div>
       )}
 
@@ -61,9 +68,8 @@ export function AddClientContent({ tiers, userId, isAdmin }: AddClientContentPro
 
       <form id="add-user-form" action={formAction} className="space-y-4">
         <input type="hidden" name="createdBy" value={userId} />
-        {/* Hidden inputs for custom selects */}
-        <input type="hidden" name="role" value={selectedRole} />
-        <input type="hidden" name="tierId" value={selectedTier} />
+        
+        {/* REMOVED MANUAL HIDDEN INPUTS HERE - We use 'name' on Select instead */}
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -71,15 +77,16 @@ export function AddClientContent({ tiers, userId, isAdmin }: AddClientContentPro
             <Input id="name" name="name" placeholder="John Doe" required disabled={isPending} />
           </div>
 
-          {/* Role selector */}
           <div className="space-y-2">
-            <Label htmlFor="role-select">Role</Label>
+            <Label htmlFor="role">Role</Label>
+            {/* Added 'name="role"' here. Shadcn handles the hidden input automatically */}
             <Select 
+              name="role" 
               value={selectedRole}
-              onValueChange={(val) => setSelectedRole(val)}
+              onValueChange={setSelectedRole}
               disabled={isPending}
             >
-              <SelectTrigger id="role-select">
+              <SelectTrigger id="role">
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
@@ -111,7 +118,7 @@ export function AddClientContent({ tiers, userId, isAdmin }: AddClientContentPro
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
             >
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
@@ -119,21 +126,25 @@ export function AddClientContent({ tiers, userId, isAdmin }: AddClientContentPro
           <p className="text-xs text-gray-500">Must be at least 6 characters.</p>
         </div>
 
-        {/* Tier selection – only shown when role is 'client' */}
+        {/* Conditional Tier Selection */}
         {selectedRole === 'client' && (
           <div className="space-y-2 border-t pt-4">
-            <Label htmlFor="tier-select">Subscription Tier</Label>
-            {tiers.length === 0 ? (
+            <Label htmlFor="tierId">Subscription Tier</Label>
+            {(!tiers || tiers.length === 0) ? (
               <p className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
                 No tiers configured. Please contact an administrator.
               </p>
             ) : (
+              // Added 'name="tierId"' here. 
+              // Since this entire block is removed from DOM when role != client,
+              // no tierId is sent for employees. Perfect behavior.
               <Select 
+                name="tierId"
                 value={selectedTier}
-                onValueChange={(val) => setSelectedTier(val)}
+                onValueChange={setSelectedTier}
                 disabled={isPending}
               >
-                <SelectTrigger id="tier-select">
+                <SelectTrigger id="tierId">
                   <SelectValue placeholder="Select a tier" />
                 </SelectTrigger>
                 <SelectContent>
