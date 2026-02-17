@@ -30,6 +30,11 @@ export async function createClientAction(prevState: any, formData: FormData) {
   try {
     // 2. Call the Render Backend
     const response = await fetch(`${API_URL}/api/auth/manager/add-client`, {
+      const rawTier = formData.get("tierId");
+    // If tierId is missing, empty, or 0, force it to 1 (or your default tier ID)
+    const finalTierId = (rawTier && parseInt(rawTier as string) > 0) 
+      ? parseInt(rawTier as string) 
+      : 1; 
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -40,7 +45,7 @@ export async function createClientAction(prevState: any, formData: FormData) {
         email: email,
         password: password,
         role: role,
-        tier_id: Number(tierId)
+        tier_id: finalTierId
       }),
       // Adding a timeout signal just in case Render is sleeping
       signal: AbortSignal.timeout(15000) 
