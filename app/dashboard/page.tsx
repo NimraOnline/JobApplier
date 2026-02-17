@@ -67,8 +67,17 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         
         // List of all clients in the system to assign FROM
         supabase.from('clients')
-          .select('id, name, email, status')
-          .order('name'),
+        .select(`
+          id, 
+          name, 
+          email, 
+          status, 
+          assignments:client_assignments(
+            is_active,
+            employee:user_profiles(full_name)
+          )
+        `)
+        .order('name')
         
         // List of tiers for the Add Client form
         supabase.from('client_tiers')
