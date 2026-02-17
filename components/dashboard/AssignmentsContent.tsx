@@ -217,17 +217,16 @@ export function AssignmentsContent({ clients, employees }: AssignmentsContentPro
 
                       {/* Assigned To Column */}
                       <TableCell>
-                        {assignedName ? (
-                          <div className="flex items-center gap-2 text-sm text-blue-700 font-medium bg-blue-50/50 px-2 py-1 rounded-md w-fit">
-                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                            {assignedName}
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 text-slate-400 text-xs italic px-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                            Not assigned
-                          </div>
-                        )}
+                        {<TableCell>
+                          {assignedName ? (
+                            <div className="flex items-center gap-2 text-sm text-blue-700 font-medium">
+                              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                              {assignedName}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-xs italic">Not assigned</span>
+                          )}
+                      </TableCell>
                       </TableCell>
                     </TableRow>
                   );
