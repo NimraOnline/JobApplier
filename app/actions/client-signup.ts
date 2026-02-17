@@ -3,56 +3,73 @@
 import { createActionClient } from "@/lib/supabase/server-action"
 import { revalidatePath } from "next/cache"
 
+/**
+ * Server Action to create a client via the FastAPI Backend
+ */
 export async function createClientAction(prevState: any, formData: FormData) {
-  const name = formData.get("name") as string
-  const email = formData.get("email") as string
-  const password = formData.get("password") as string
-  const role = formData.get("role") as string
-  const tierId = formData.get("tierId") as string
-  
-  // 1. Get the Manager's Session to prove they are logged in
-  const supabase = await createActionClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  // --- HARDCODED URL FOR TESTING ---
+  const API_URL = "https://api-interview-getter.onrender.com";
+  // ----------------------------------
 
-  if (!session) return { error: "Unauthorized" }
+  const name = formData.get("name") as string;
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+  const role = formData.get("role") as string;
+  const tierId = formData.get("tierId") as string;
 
-  // DEBUG LOG - Check your Vercel "Logs" tab or Terminal to see this
-  console.log("--- DEBUG API CALL ---");
-  console.log("Raw Env Var:", process.env.NEXT_PUBLIC_API_URL);
-  console.log("Final URL being used:", API_URL || "http://127.0.0.1:8000");
-  
-  if (!API_URL) {
-      return { error: "System Error: NEXT_PUBLIC_API_URL is not defined in environment variables." }
+  // 1. Get Manager Session
+  const supabase = await createActionClient();
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) {
+    return { error: "Session expired. Please log in again." };
   }
 
+  console.log(`[DEBUG] Calling Backend: ${API_URL}/api/auth/manager/add-client`);
+
   try {
+    // 2. Call the Render Backend
     const response = await fetch(`${API_URL}/api/auth/manager/add-client`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        // Send the manager's token so Python knows who is asking
-        "Authorization": `Bearer ${session.access_token}` 
+        "Authorization": `Bearer ${session.access_token}`
       },
       body: JSON.stringify({
-        username: name,      // Mapping 'name' form field to 'username' for Python
+        username: name,
         email: email,
         password: password,
         role: role,
-        tier_id: Number(tierId) // Ensure this is sent as a number/integer
-      })
+        tier_id: Number(tierId)
+      }),
+      // Adding a timeout signal just in case Render is sleeping
+      signal: AbortSignal.timeout(15000) 
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      return { error: errorData.detail || "Failed to create client on backend." }
+      const errorData = await response.json().catch(() => ({}));
+      return { 
+        error: errorData.detail || `Backend returned error ${response.status}` 
+      };
     }
 
-    // 3. Success!
-    revalidatePath("/dashboard")
-    return { success: true }
+    // 3. Success
+    revalidatePath("/dashboard");
+    return { 
+      success: true, 
+      message: "Successfully created user via Render API." 
+    };
 
-  } catch (error) {
-    console.error("Backend API Error:", error)
-    return { error: "Connection to backend failed." }
+  } catch (err: any) {
+    console.error("Hardcoded Fetch failed:", err);
+    
+    // Check if it's a timeout (Render free tier takes 50+ seconds to wake up sometimes)
+    if (err.name === 'TimeoutError') {
+        return { error: "Backend took too long to respond. It might be waking up. Try again in 30 seconds." };
+    }
+
+    return { 
+      error: `Failed to connect to ${API_URL}. Is the backend service active?` 
+    };
   }
 }
