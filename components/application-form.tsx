@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label"
 import { FileText, Loader2 } from "lucide-react"
 import type { Client } from "@/types/client"
 
-// Updated to include the new fields
 interface ApplicationFormProps {
   client: Client
   onSubmit: (data: { clientId: string, companyName: string, jobTitle: string, jobUrl: string }) => Promise<void> | void
@@ -19,19 +18,22 @@ export function ApplicationForm({ client, onSubmit }: ApplicationFormProps) {
   const [companyName, setCompanyName] = useState("")
   const [jobTitle, setJobTitle] = useState("")
   const [jobUrl, setJobUrl] = useState("")
-  
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<{ companyName?: string; jobTitle?: string; jobUrl?: string }>({})
 
+  // ✨ CRITICAL MASTER-DETAIL FIX: Reset the form when the selected client changes!
+  useEffect(() => {
+    setCompanyName("")
+    setJobTitle("")
+    setJobUrl("")
+    setErrors({})
+  }, [client.id])
+
   const validateForm = (): boolean => {
     const newErrors: { companyName?: string; jobTitle?: string; jobUrl?: string } = {}
-
     if (!companyName.trim()) newErrors.companyName = "Company Name is required"
     if (!jobTitle.trim()) newErrors.jobTitle = "Job Title is required"
-    
-    if (jobUrl.trim() && !isValidUrl(jobUrl)) {
-      newErrors.jobUrl = "Please enter a valid URL"
-    }
+    if (jobUrl.trim() && !isValidUrl(jobUrl)) newErrors.jobUrl = "Please enter a valid URL"
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -48,20 +50,11 @@ export function ApplicationForm({ client, onSubmit }: ApplicationFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
     if (!validateForm()) return
 
     setIsLoading(true)
     try {
-      // Send all the data to the Server Action
-      await onSubmit({ 
-        clientId: client.id, 
-        companyName,
-        jobTitle,
-        jobUrl 
-      })
-      
-      // Reset everything on success
+      await onSubmit({ clientId: client.id, companyName, jobTitle, jobUrl })
       setCompanyName("")
       setJobTitle("")
       setJobUrl("")
@@ -74,18 +67,16 @@ export function ApplicationForm({ client, onSubmit }: ApplicationFormProps) {
   }
 
   return (
-    <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <Card className="shadow-sm border-slate-200">
+      <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
+        <CardTitle className="flex items-center gap-2 text-lg">
           <FileText className="w-5 h-5 text-blue-600" />
           Log Job Application
         </CardTitle>
-        <CardDescription>Track an application submitted for {client.name}</CardDescription>
+        <CardDescription>Record a new application submitted on behalf of {client.name}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <form onSubmit={handleSubmit} className="space-y-4">
-          
-          {/* Company Name */}
           <div className="space-y-2">
             <Label htmlFor={`company-${client.id}`}>Company Name <span className="text-red-500">*</span></Label>
             <Input
@@ -101,7 +92,6 @@ export function ApplicationForm({ client, onSubmit }: ApplicationFormProps) {
             {errors.companyName && <p className="text-red-500 text-sm">{errors.companyName}</p>}
           </div>
 
-          {/* Job Title */}
           <div className="space-y-2">
             <Label htmlFor={`title-${client.id}`}>Job Title <span className="text-red-500">*</span></Label>
             <Input
@@ -117,7 +107,6 @@ export function ApplicationForm({ client, onSubmit }: ApplicationFormProps) {
             {errors.jobTitle && <p className="text-red-500 text-sm">{errors.jobTitle}</p>}
           </div>
 
-          {/* Job URL */}
           <div className="space-y-2">
             <Label htmlFor={`job-url-${client.id}`}>Job URL</Label>
             <Input
@@ -137,11 +126,9 @@ export function ApplicationForm({ client, onSubmit }: ApplicationFormProps) {
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
           >
-            {isLoading ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...</>
-            ) : "Submit Application"}
+            {isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...</> : "Submit Application"}
           </Button>
         </form>
       </CardContent>
