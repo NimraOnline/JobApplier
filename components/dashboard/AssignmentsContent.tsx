@@ -167,9 +167,13 @@ export function AssignmentsContent({ clients, employees }: AssignmentsContentPro
               ) : (
                 sortedClients.map((client) => {
                   // Safely access nested assignment data
+                  // Inside AssignmentsContent.tsx -> TableBody
                   const assignments = Array.isArray(client.client_assignments) ? client.client_assignments : [];
                   const activeAssignment = assignments.find((a: any) => a.is_active);
-                  const assignedName = activeAssignment?.user_profiles?.full_name;
+
+                  // Add safety checks to drill down and find the full_name regardless of how Supabase nests it
+                  const assignedName = activeAssignment?.user_profiles?.full_name 
+                                    || activeAssignment?.user_profiles?.[0]?.full_name;
 
                   return (
                     <TableRow key={client.id} className={selectedClientIds.includes(client.id) ? "bg-blue-50/50" : ""}>
