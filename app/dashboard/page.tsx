@@ -71,9 +71,18 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       // 2. Fetch Clients (Simplified - NO JOIN first)
       // If this returns clients, then our Join syntax was the problem.
       // If this returns 0, then RLS (Database Permissions) is the problem.
+      // 2. Fetch Clients WITH their active assignments and employee names
       const { data: rawClients, error: cliErr } = await supabase
         .from('clients')
-        .select('*') 
+        .select(`
+          *,
+          client_assignments (
+            is_active,
+            user_profiles!client_assignments_employee_id_fkey (
+              full_name
+            )
+          )
+        `)
         .order('name')
 
       if (cliErr) {
