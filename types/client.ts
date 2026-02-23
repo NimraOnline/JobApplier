@@ -28,14 +28,20 @@ export interface ClientEmail {
   isImportant: boolean;
 }
 
-// Form data types (unchanged)
+// UPDATED: Form data types to match Database Schema
 export interface ApplicationFormData {
-  jobUrl: string;
+  companyName: string; // Added: DB requires this
+  jobTitle: string;    // Added: DB requires this
+  jobUrl: string;      // Existing
 }
 
 export interface JobMatchFormData {
+  // If you want to keep it simple and just upload the file:
   emlFile: File | null;
   dateMatched: string;
+  // If you eventually want the employee to type the details:
+  companyName?: string; 
+  jobTitle?: string;
 }
 
 export interface ClientFormProps {

@@ -1,96 +1,69 @@
+// app/providers/AuthProvider.tsx
 "use client"
 
-import { createContext, useContext, useEffect, useState } from 'react'
-import { Session, User, SupabaseClient } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/client'
-import { Database } from '@/types/supabase'
+import React, { createContext, useContext, useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
+import { User, Session } from "@supabase/supabase-js"
+import { useRouter } from "next/navigation"
+import { signOutAction } from "@/app/actions/auth"
 
-type UserProfile = Database['public']['Tables']['user_profiles']['Row']
-
-type AuthContextType = {
-  supabase: SupabaseClient<Database>
-  session: Session | null
+interface AuthContextType {
   user: User | null
-  profile: UserProfile | null
+  session: Session | null
+  profile: any | null
   loading: boolean
   isEmployee: boolean
+  isManager: boolean
+  signOut: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  session: null,
+  profile: null,
+  loading: false,
+  isEmployee: false,
+  isManager: false,
+  signOut: async () => {},
+})
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ 
+  children, 
+  initialUser = null, 
+  initialProfile = null 
+}: { 
+  children: React.ReactNode
+  initialUser?: User | null
+  initialProfile?: any | null
+}) {
+  const [user, setUser] = useState<User | null>(initialUser)
+  const [session, setSession] = useState<Session | null>(null) // we may not need session
+  const [profile, setProfile] = useState<any | null>(initialProfile)
+  const [loading, setLoading] = useState(false) // no loading on initial render
   const [supabase] = useState(() => createClient())
-  
-  const [session, setSession] = useState<Session | null>(null)
-  const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
     let mounted = true
 
-    const fetchProfile = async (userId: string) => {
-      try {
-        const { data, error } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('id', userId)
-            .single()
-        
-        if (error && error.code !== 'PGRST116') throw error
-        if (mounted && data) setProfile(data)
-      } catch (error) {
-        console.error("Error fetching profile:", error)
-      }
-    }
-
-    const getInitialAuth = async () => {
-      try {
-        const { data: { session: currentSession }, error } = await supabase.auth.getSession()
-        if (error) throw error
-        
-        if (mounted) {
-          setSession(currentSession)
-          setUser(currentSession?.user ?? null)
-
-          if (currentSession?.user) {
-              await fetchProfile(currentSession.user.id)
-          } else {
-              setProfile(null)
-          }
-        }
-      } catch (error: any) {
-        // --- THE FIX: IGNORE ABORT ERRORS ---
-        if (error.name === 'AbortError' || error.message?.includes('aborted')) {
-          return
-        }
-        console.error("Auth init error:", error)
-      } finally {
-        if (mounted) setLoading(false)
-      }
-    }
-
-    getInitialAuth()
-
+    // Sync with Supabase auth state (optional, but good for token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         if (!mounted) return
-
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT') {
-            setSession(newSession)
-            setUser(newSession?.user ?? null)
-            
-            if (newSession?.user) {
-                try {
-                  await fetchProfile(newSession.user.id)
-                } catch (err) {
-                  console.error("Profile refresh error", err)
-                }
-            } else {
-                setProfile(null)
-            }
-            setLoading(false)
+        if (newSession) {
+          setUser(newSession.user)
+          // Optionally refresh profile if needed
+          const { data } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('id', newSession.user.id)
+            .single()
+          if (data) setProfile(data)
+        } else {
+          setUser(null)
+          setProfile(null)
         }
+        router.refresh()
       }
     )
 
@@ -98,19 +71,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [supabase])
+  }, [supabase, router])
 
-  const isEmployee = !!profile && ['employee', 'manager', 'admin'].includes(profile.role);
+  const signOut = async () => {
+    setLoading(true)
+    await signOutAction()
+    // The redirect will happen; loading will be reset after redirect
+  }
+
+  const isEmployee = ['employee', 'manager', 'admin'].includes(profile?.role)
+  const isManager = ['manager', 'admin'].includes(profile?.role)
 
   return (
-    <AuthContext.Provider value={{ supabase, session, user, profile, loading, isEmployee }}>
+    <AuthContext.Provider value={{ user, session, profile, loading, isEmployee, isManager, signOut }}>
       {children}
     </AuthContext.Provider>
   )
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (!context) throw new Error('useAuth must be used within an AuthProvider')
-  return context
-}
+export const useAuth = () => useContext(AuthContext)

@@ -2,26 +2,18 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  // 1. Create an initial response
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+  let supabaseResponse = NextResponse.next({ request })
 
-  // 2. Create the Supabase client
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: { name: 'employee-auth-token' },
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
+        getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
-          // This ensures the auth cookie is persisted in the response
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           )
@@ -30,77 +22,70 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // 3. Get the user (this refreshes the session if needed)
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // 1. Get User
+  const { data: { user } } = await supabase.auth.getUser()
+  const url = request.nextUrl.clone()
 
-  // -----------------------------------------------------------------
-  // PROTECTION LOGIC
-  // -----------------------------------------------------------------
+  // 2. Pre-fetch Role (Optimization for Phase 1 Logic)
+  // We need to know the role to prevent the redirect loop
+  let isEmployee = false
+  let profile = null
+  let profileError = null
 
-  const isDashboardRoute = request.nextUrl.pathname.startsWith('/dashboard')
-  const isLoginPage = request.nextUrl.pathname.startsWith('/login')
-  const isRootPath = request.nextUrl.pathname === '/'
-
-  if (isRootPath) {
-    const url = request.nextUrl.clone()
-    if (user) {
-      url.pathname = '/dashboard'
-    } else {
-      url.pathname = '/login'
-    }
-    return NextResponse.redirect(url)
-  }
-
-  // Case A: User is NOT logged in and tries to access Dashboard
-  if (!user && isDashboardRoute) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
-
-  // Case B: User IS logged in, but we need to check if they are an Employee
-  if (user && isDashboardRoute) {
-    // Fetch the user profile to check the role
-    const { data: profile } = await supabase
+  if (user) {
+    const result = await supabase
       .from('user_profiles')
       .select('role')
       .eq('id', user.id)
       .single()
+    
+    profile = result.data
+    profileError = result.error
+    
+    // Check if role is valid for this portal
+    isEmployee = profile && ['employee', 'manager', 'admin'].includes(profile.role)
+  }
 
-    const isEmployee = profile && ['employee', 'manager', 'admin'].includes(profile.role)
+  // A. Root Path logic
+  if (url.pathname === '/') {
+    // If they are logged in AND an employee, go to dashboard. Otherwise login.
+    url.pathname = (user && isEmployee) ? '/dashboard' : '/login'
+    return NextResponse.redirect(url)
+  }
+
+  // B. Dashboard Protection
+  if (url.pathname.startsWith('/dashboard')) {
+    if (!user) {
+      url.pathname = '/login'
+      return NextResponse.redirect(url)
+    }
 
     if (!isEmployee) {
-      // Access Denied: Sign them out and send back to login
-      await supabase.auth.signOut()
+      // LOGIC FIX: User is logged in, but not an employee.
+      // We explicitly allow them to fall through to the login page (via redirect)
+      // instead of looping.
+      const reason = profile ? `Role is ${profile.role}` : (profileError ? `DB Error` : "Profile not found")
       
-      const url = request.nextUrl.clone()
       url.pathname = '/login'
-      url.searchParams.set('message', 'Access denied. Employees only.')
+      url.searchParams.set('message', `Access denied. (${reason})`)
       return NextResponse.redirect(url)
     }
   }
 
-  // Case C: User is already logged in but tries to visit Login page
-  if (user && isLoginPage) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
+  // C. Login Page logic (The Fix)
+  if (url.pathname.startsWith('/login') && user) {
+    // CRITICAL FIX: Only redirect to dashboard if they are actually an employee.
+    // If they are a 'client', DO NOT redirect them back to dashboard, 
+    // allow them to see the login page (which might show an error or a sign out button).
+    if (isEmployee) {
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
   }
 
   return supabaseResponse
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - api (API routes, optional if you want to protect them too)
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 }

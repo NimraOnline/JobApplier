@@ -1,22 +1,16 @@
-"use client"
+import { createClient } from "@/lib/supabase/server"
+import { redirect } from "next/navigation"
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+export default async function RootPage() {
+  const supabase = await createClient()
+  
+  // We just check if a user exists. 
+  // The middleware handles the role-based redirection to /login if they aren't an employee.
+  const { data: { user } } = await supabase.auth.getUser()
 
-export default function HomePage() {
-  const router = useRouter()
-
-  useEffect(() => {
-    // Redirect to login page
-    router.push("/login")
-  }, [router])
-
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="mt-2 text-gray-600">Redirecting...</p>
-      </div>
-    </div>
-  )
+  if (user) {
+    redirect("/dashboard")
+  } else {
+    redirect("/login")
+  }
 }

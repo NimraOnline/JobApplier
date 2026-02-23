@@ -1,10 +1,11 @@
-import type React from "react"
-import type { Metadata } from "next"
+import { createClient } from '@/lib/supabase/server' // ✅ FIXED: Must match the export in server.ts
+import { AuthProvider } from './providers/AuthProvider'
+import { Toaster } from "@/components/ui/toaster"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
-import { Toaster } from "@/components/ui/toaster"
-import { AuthProvider } from "./providers/AuthProvider" // <--- Import AuthProvider
-// import { ToasterProvider } from './providers/ToasterProvider'; // If you have a custom ToasterProvider that wraps shadcn/ui Toaster
+
+// ✅ IMPORTANT: Force dynamic rendering so build doesn't crash on 'not-found'
+export const dynamic = "force-dynamic";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,25 +17,37 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 })
 
-export const metadata: Metadata = {
-  title: "Employee Portal",
-  description: "Employee portal for managing clients and AI tools",
-    generator: 'v0.app'
-}
-
-export default function RootLayout({
+export default async function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
+  // ✅ FIXED: Use the correct function name
+  const supabase = await createClient() 
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  let profile = null
+  if (user) {
+    const { data } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+    profile = data
+  }
+
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AuthProvider> {/* <--- Wrap children with AuthProvider */}
+        <AuthProvider initialUser={user} initialProfile={profile}>
           {children}
         </AuthProvider>
-        <Toaster /> {/* <--- Make sure this is present if using shadcn/ui toast */}
+        <Toaster />
       </body>
     </html>
   )
 }
+
+export const metadata = {
+      generator: 'v0.app'
+    };
