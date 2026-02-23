@@ -30,7 +30,7 @@ interface AssignmentsContentProps {
 }
 
 type SortConfig = {
-  key: 'name' | 'email' | 'status'
+  key: 'name' | 'email' | 'status' | 'assigned_to' 
   direction: 'asc' | 'desc'
 }
 
@@ -52,13 +52,32 @@ export function AssignmentsContent({ clients, employees }: AssignmentsContentPro
   const sortedClients = useMemo(() => {
     if (!clients) return []
     let items = [...clients]
+    
     items.sort((a, b) => {
-      const valA = a[sortConfig.key]?.toLowerCase() || ""
-      const valB = b[sortConfig.key]?.toLowerCase() || ""
+      let valA = ""
+      let valB = ""
+
+      // If we are sorting by assignments, dig into the nested data
+      if (sortConfig.key === 'assigned_to') {
+        const assignmentsA = Array.isArray(a.client_assignments) ? a.client_assignments : []
+        const activeA = assignmentsA.find((ass: any) => ass.is_active)
+        valA = (activeA?.user_profiles?.full_name || activeA?.user_profiles?.[0]?.full_name || "").toLowerCase()
+
+        const assignmentsB = Array.isArray(b.client_assignments) ? b.client_assignments : []
+        const activeB = assignmentsB.find((ass: any) => ass.is_active)
+        valB = (activeB?.user_profiles?.full_name || activeB?.user_profiles?.[0]?.full_name || "").toLowerCase()
+      } 
+      // Otherwise, sort normally by the top-level string (name, email, status)
+      else {
+        valA = (a[sortConfig.key] || "").toLowerCase()
+        valB = (b[sortConfig.key] || "").toLowerCase()
+      }
+
       if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1
       if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1
       return 0
     })
+    
     return items
   }, [clients, sortConfig])
 
@@ -154,7 +173,9 @@ export function AssignmentsContent({ clients, employees }: AssignmentsContentPro
                 <TableHead onClick={() => handleSort('status')} className="cursor-pointer hover:text-blue-600">
                   Status <ArrowUpDown className="inline ml-1 w-3 h-3" />
                 </TableHead>
-                <TableHead>Currently Assigned To</TableHead>
+                <TableHead onClick={() => handleSort('assigned_to')} className="cursor-pointer hover:text-blue-600">
+                  Currently Assigned To <ArrowUpDown className="inline ml-1 w-3 h-3" />
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
