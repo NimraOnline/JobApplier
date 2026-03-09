@@ -14,6 +14,11 @@ export const tabConfig = {
     label: "Assignments",
     component: "AssignmentsContent",
   },
+   playbook: { 
+    id: "playbook",
+    label: "Playbook",
+    component: "PlaybookContent" 
+  }, 
   "generate-edit": {
     id: "generate-edit",
     label: "Generate & Edit",
