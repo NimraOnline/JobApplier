@@ -10,66 +10,47 @@ import { GenerateEditContent } from "@/components/generate-edit-content"
 import { SettingsContent } from "@/components/settings-content"
 import { AddClientContent } from "@/components/add-client-content"
 import { AssignmentsContent } from "@/components/dashboard/AssignmentsContent"
+// ✅ IMPORT PLAYBOOK FROM COMPONENTS
+import { PlaybookContent } from "@/components/PlaybookContent" 
 
 export function DashboardClientWrapper({ 
   user: propUser, 
   profile: propProfile, 
   initialClients, 
   managerData, 
-  isManager: propIsManager ,
-  initialTab // ✅ Receive from props
+  isManager: propIsManager,
+  initialTab 
 }: any) {
-  // 1. Get auth context (initialized instantly via props in layout.tsx)
   const { profile: authProfile, user: authUser } = useAuth()
-  
-  // 2. Use the most up-to-date profile available
   const profile = propProfile || authProfile
   const user = propUser || authUser
-  
-  // 3. Compute permissions
   const isManager = propIsManager ?? (profile?.role === 'manager' || profile?.role === 'admin')
   
-  const { activeTab, handleTabChange } = useTabsSimple(initialTab) 
+  const { activeTab, handleTabChange } = useTabsSimple(initialTab)
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-cyan-50/30">
       <TopNav 
         activeTab={activeTab} 
         onTabChange={(tab) => handleTabChange(tab as TabId)}
-        // Ensure TopNav receives the profile for instant "Alice" name rendering
         profile={profile} 
       />
       
       <main className="p-6">
-        {activeTab === 'dashboard' && (
-          <DashboardContent clients={initialClients} isLoading={false} />
-        )}
-        
-        {activeTab === 'clients' && (
-          <ClientsContent clients={initialClients} isLoading={false} />
-        )}
-        
+        {activeTab === 'dashboard' && <DashboardContent clients={initialClients} isLoading={false} />}
+        {activeTab === 'clients' && <ClientsContent clients={initialClients} isLoading={false} />}
         {activeTab === 'generate-edit' && <GenerateEditContent />}
-        
         {activeTab === 'settings' && <SettingsContent />}
-
-        {/* --- MANAGER ONLY TABS --- */}
         
-        {/* Add Client Tab */}
-        {activeTab === 'add-client' && isManager && (
-          <AddClientContent 
-            tiers={managerData?.tiers || []} 
-            userId={user?.id}
-            isAdmin={profile?.role === 'admin'}
-          />
-        )}
+        {/* ✅ ADD PLAYBOOK TAB HERE (Visible to everyone) */}
+        {activeTab === 'playbook' && <PlaybookContent />}
 
-        {/* Assignments Tab - Added the 'isManager' guard here ✅ */}
+        {/* Manager Only Tabs */}
+        {activeTab === 'add-client' && isManager && (
+          <AddClientContent tiers={managerData?.tiers || []} userId={user?.id} isAdmin={profile?.role === 'admin'} />
+        )}
         {activeTab === "assignments" && isManager && (
-          <AssignmentsContent 
-            clients={managerData?.allClients || []} 
-            employees={managerData?.employees || []} 
-          />
+          <AssignmentsContent clients={managerData?.allClients || []} employees={managerData?.employees || []} />
         )}
       </main>
     </div>
