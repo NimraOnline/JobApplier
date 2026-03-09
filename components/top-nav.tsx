@@ -22,7 +22,7 @@ import {
   ChevronDown,
   UserPlus,
   UserCheck, 
-  BookOpenو
+  BookOpen,
 } from "lucide-react"
 
 interface TopNavProps {
