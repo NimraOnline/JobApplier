@@ -21,7 +21,8 @@ import {
   Building2,
   ChevronDown,
   UserPlus,
-  UserCheck, // ✅ Added new icon for Assignments
+  UserCheck, 
+  BookOpenو
 } from "lucide-react"
 
 interface TopNavProps {
@@ -41,6 +42,7 @@ export function TopNav({ activeTab, onTabChange, profile: propProfile }: TopNavP
   const navigation = [
     { title: "Dashboard", icon: LayoutDashboard, id: "dashboard" },
     { title: "My Clients", icon: Users, id: "clients" }, // Renamed to "My Clients" for clarity
+    { title: "Playbook", icon: BookOpen, id: "playbook" },
     { title: "Generate & Edit", icon: Bot, id: "generate-edit" },
   ]
 
