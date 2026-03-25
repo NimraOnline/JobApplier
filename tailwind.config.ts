@@ -11,11 +11,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // --- Fix: Removed deprecated color keys (lightBlue, warmGray, etc.) ---
-        // Tailwind now uses sky, stone, neutral, gray, and slate by default.
-        // If your components used "bg-lightBlue-500", change them to "bg-sky-500".
-
-        // --- Shadcn UI & App Variables ---
+        // Shadcn UI & App Variables
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
