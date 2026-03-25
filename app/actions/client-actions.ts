@@ -1,31 +1,31 @@
 "use server"
 
-import { createClient } from "@/lib/supabase/server" // Ensure this path is correct for your project
+import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
-// 1. Define the Validation Schema (Best Practice)
+// 1. Define the Validation Schema
 const ApplicationSchema = z.object({
   clientId: z.string().uuid(),
   companyName: z.string().min(1, "Company name is required"),
   jobTitle: z.string().min(1, "Job title is required"),
+  // Allow empty string in validation, but we will nullify it before the DB insert
   jobUrl: z.string().url().optional().or(z.literal("")),
   salaryRange: z.string().optional(),
   status: z.enum(['submitted', 'interview', 'offer', 'rejected']).default('submitted'),
   notes: z.string().optional(),
 })
 
-// 2. The Actual Function Called by the Form
 export async function submitJobApplication(data: any) {
   const supabase = await createClient()
 
-  // A. Security Check: Who is sending this?
+  // A. Security Check
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
     throw new Error("Unauthorized: You must be logged in.")
   }
 
-  // B. Validation Check: Is the data clean?
+  // B. Validation Check
   const result = ApplicationSchema.safeParse(data)
   if (!result.success) {
     throw new Error("Invalid data: " + result.error.errors[0].message)
@@ -33,8 +33,7 @@ export async function submitJobApplication(data: any) {
 
   const { clientId, companyName, jobTitle, jobUrl, salaryRange, status, notes } = result.data
 
-  // C. Permission Check: Is this employee allowed to work on this client?
-  // (Optional but recommended extra layer of security)
+  // C. Permission Check
   const { data: assignment } = await supabase
     .from('client_assignments')
     .select('id')
@@ -46,17 +45,18 @@ export async function submitJobApplication(data: any) {
     throw new Error("Unauthorized: You are not assigned to this client.")
   }
 
-  // D. The Insert (This triggers the Notification automatically!)
+  // D. The Insert with NULL handling
   const { error } = await supabase.from("job_applications").insert({
     client_id: clientId,
     submitted_by: user.id,
-    company_name: companyName,
-    job_title: jobTitle,
-    job_url: jobUrl,
-    salary_range: salaryRange,
+    company_name: companyName.trim(),
+    job_title: jobTitle.trim(),
+    // ✅ FIX: Use .trim() || null to convert "" to NULL
+    job_url: jobUrl?.trim() || null,
+    salary_range: salaryRange?.trim() || null,
     status: status,
-    notes: notes,
-    application_date: new Date().toISOString(), // Defaults to "Now"
+    notes: notes?.trim() || null, 
+    application_date: new Date().toISOString(),
     application_method: 'portal'
   })
 
@@ -71,9 +71,7 @@ export async function submitJobApplication(data: any) {
   return { success: true }
 }
 
-// Placeholder for the Job Match function (to avoid import errors)
 export async function submitJobMatch(data: any) {
-  // We can implement this later
   console.log("Job Match Placeholder", data)
   return { success: true }
 }
