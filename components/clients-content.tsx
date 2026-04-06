@@ -175,8 +175,10 @@ export function ClientsContent({ clients = [], isLoading }: ClientsContentProps)
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
                 {/* Left Column: Standard Application Form */}
+                {/* 1. Update the Left Column: Standard Application Form */}
                 <div className="xl:col-span-1">
                   <ApplicationForm
+                    key={`app-form-${selectedClient.id}`}  {/* ✅ ADD THIS KEY */}
                     client={selectedClient}
                     onSubmit={handleApplicationSubmit}
                   />
@@ -185,7 +187,7 @@ export function ClientsContent({ clients = [], isLoading }: ClientsContentProps)
                 {/* Right Column: Interview Form & Success History */}
                 <div className="xl:col-span-1 flex flex-col gap-6">
 
-                  {/* 1. Log Interview Card */}
+                  {/* 2. Update the Log Interview Card */}
                   <Card className="shadow-sm border-green-200 bg-green-50/30">
                     <CardHeader className="pb-4 border-b border-green-100 mb-4 bg-green-50/50">
                       <CardTitle className="text-lg font-bold text-green-800 flex items-center gap-2">
@@ -193,7 +195,10 @@ export function ClientsContent({ clients = [], isLoading }: ClientsContentProps)
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <InterviewForm clientId={selectedClient.id} />
+                      <InterviewForm
+                        key={`int-form-${selectedClient.id}`}  {/* ✅ ADD THIS KEY */}
+                        clientId={selectedClient.id}
+                      />
                     </CardContent>
                   </Card>
 
