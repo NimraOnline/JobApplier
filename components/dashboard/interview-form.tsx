@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { submitJobApplication } from "@/app/actions/client-actions"
-import { Loader2 } from "lucide-react"
+import { Loader2, AlertCircle } from "lucide-react"
 
 interface InterviewFormProps {
   clientId: string
@@ -16,31 +16,37 @@ interface InterviewFormProps {
 
 export function InterviewForm({ clientId, onSuccess }: InterviewFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null) // Added visible error state
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setIsSubmitting(true)
+    setErrorMsg(null) // Clear previous errors
 
     const formData = new FormData(e.currentTarget)
 
-    // We format the data to match what submitJobApplication expects
+    // Explicitly cast to string to prevent Null crashes in Zod
     const data = {
       clientId: clientId,
-      companyName: formData.get("companyName"),
-      jobTitle: formData.get("jobTitle"),
-      jobUrl: formData.get("jobUrl"),
-      status: "interview", // ✅ HARDCODED: This makes it an interview record
-      notes: formData.get("notes"),
+      companyName: formData.get("companyName") as string,
+      jobTitle: formData.get("jobTitle") as string,
+      jobUrl: formData.get("jobUrl") as string || "",
+      status: "interview",
+      notes: formData.get("notes") as string || "",
     }
 
     try {
       const result = await submitJobApplication(data)
-      if (result.success) {
+
+      if (result.error) {
+        setErrorMsg(result.error)
+        toast.error(result.error) // Try toast, but rely on inline error
+      } else if (result.success) {
         toast.success("Interview logged successfully!")
         if (onSuccess) onSuccess()
       }
     } catch (error: any) {
-      toast.error(error.message || "Failed to log interview")
+      setErrorMsg("A network error occurred. Please try again.")
     } finally {
       setIsSubmitting(false)
     }
@@ -91,6 +97,14 @@ export function InterviewForm({ clientId, onSuccess }: InterviewFormProps) {
           className="resize-none"
         />
       </div>
+
+      {/* INLINE ERROR DISPLAY */}
+      {errorMsg && (
+        <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
 
       <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white" disabled={isSubmitting}>
         {isSubmitting ? (
