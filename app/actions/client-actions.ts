@@ -9,11 +9,10 @@ const ApplicationSchema = z.object({
   clientId: z.string().uuid(),
   companyName: z.string().min(1, "Company name is required"),
   jobTitle: z.string().min(1, "Job title is required"),
-  // Allow empty string in validation, but we will nullify it before the DB insert
-  jobUrl: z.string().url().optional().or(z.literal("")),
-  salaryRange: z.string().optional(),
+  jobUrl: z.string().url("Must be a valid URL (e.g., https://...)").optional().or(z.literal("")),
+  salaryRange: z.string().optional().nullable(),
   status: z.enum(['submitted', 'interview', 'offer', 'rejected']).default('submitted'),
-  notes: z.string().optional(),
+  notes: z.string().optional().nullable(),
 })
 
 export async function submitJobApplication(data: any) {
@@ -21,28 +20,28 @@ export async function submitJobApplication(data: any) {
 
   // A. Security Check
   const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
-    throw new Error("Unauthorized: You must be logged in.")
-  }
+  if (authError || !user) return { error: "Unauthorized: You must be logged in." }
 
   // B. Validation Check
   const result = ApplicationSchema.safeParse(data)
-  if (!result.success) {
-    throw new Error("Invalid data: " + result.error.errors[0].message)
-  }
+  if (!result.success) return { error: "Invalid data: " + result.error.errors[0].message }
 
   const { clientId, companyName, jobTitle, jobUrl, salaryRange, status, notes } = result.data
 
-  // C. Permission Check
-  const { data: assignment } = await supabase
-    .from('client_assignments')
-    .select('id')
-    .eq('client_id', clientId)
-    .eq('employee_id', user.id)
-    .single()
+  // C. Permission Check (Allow Managers to bypass assignment check)
+  const { data: profile } = await supabase.from('user_profiles').select('role').eq('id', user.id).single()
+  const isManager = profile?.role === 'manager' || profile?.role === 'admin'
 
-  if (!assignment) {
-    throw new Error("Unauthorized: You are not assigned to this client.")
+  if (!isManager) {
+    const { data: assignment } = await supabase
+      .from('client_assignments')
+      .select('id')
+      .eq('client_id', clientId)
+      .eq('employee_id', user.id)
+      .eq('is_active', true)
+      .maybeSingle() // Use maybeSingle to prevent database crash if 0 rows found
+
+    if (!assignment) return { error: "Unauthorized: You are not assigned to this client." }
   }
 
   // D. The Insert with NULL handling
@@ -51,27 +50,24 @@ export async function submitJobApplication(data: any) {
     submitted_by: user.id,
     company_name: companyName.trim(),
     job_title: jobTitle.trim(),
-    // ✅ FIX: Use .trim() || null to convert "" to NULL
     job_url: jobUrl?.trim() || null,
     salary_range: salaryRange?.trim() || null,
     status: status,
-    notes: notes?.trim() || null, 
+    notes: notes?.trim() || null,
     application_date: new Date().toISOString(),
     application_method: 'portal'
   })
 
   if (error) {
     console.error("Supabase Error:", error)
-    throw new Error("Failed to save application to database.")
+    return { error: "Database error: " + error.message }
   }
 
   // E. Refresh the Data
-  revalidatePath('/dashboard') 
-  
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
 export async function submitJobMatch(data: any) {
-  console.log("Job Match Placeholder", data)
   return { success: true }
 }
