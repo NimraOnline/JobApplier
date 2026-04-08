@@ -45,10 +45,23 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       return redirect('/login?message=Access denied')
     }
 
-    // 4. Fetch "My Clients" (The ones currently assigned to the logged-in user)
+    // 4. Fetch "My Clients"
     const { data: myClients } = await supabase
       .from("clients")
-      .select("*, client_assignments!inner(employee_id, is_active)") 
+      .select(`
+        *,
+        client_assignments!inner(employee_id, is_active),
+        job_applications (
+          id,
+          job_title,
+          company_name,
+          status,
+          application_date,
+          application_method,
+          job_url,
+          notes
+        )
+      `)
       .eq("client_assignments.employee_id", user.id)
       .eq("client_assignments.is_active", true)
 
@@ -104,9 +117,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     // 6. Pass everything to the Client Wrapper
     // The Wrapper will decide which component to show (Dashboard, Clients, or Assignments)
     return (
-      <DashboardClientWrapper 
-        user={user} 
-        profile={profile} 
+      <DashboardClientWrapper
+        user={user}
+        profile={profile}
         initialClients={myClients || []}
         managerData={managerData}
         isManager={isManager}
