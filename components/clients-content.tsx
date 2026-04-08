@@ -178,7 +178,7 @@ export function ClientsContent({ clients = [], isLoading }: ClientsContentProps)
                 {/* 1. Update the Left Column: Standard Application Form */}
                 <div className="xl:col-span-1">
                   <ApplicationForm
-                    key={`app-form-${selectedClient.id}`}  {/* ✅ ADD THIS KEY */}
+                    key={`app-form-${selectedClient.id}`}
                     client={selectedClient}
                     onSubmit={handleApplicationSubmit}
                   />
@@ -196,7 +196,7 @@ export function ClientsContent({ clients = [], isLoading }: ClientsContentProps)
                     </CardHeader>
                     <CardContent>
                       <InterviewForm
-                        key={`int-form-${selectedClient.id}`}  {/* ✅ ADD THIS KEY */}
+                        key={`int-form-${selectedClient.id}`}
                         clientId={selectedClient.id}
                       />
                     </CardContent>
