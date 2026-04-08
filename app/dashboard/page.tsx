@@ -46,9 +46,18 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     }
 
     // 4. Fetch "My Clients" (The ones currently assigned to the logged-in user)
+    // 4. Fetch "My Clients"
     const { data: myClients } = await supabase
       .from("clients")
-      .select("*, client_assignments!inner(employee_id, is_active)") 
+      .select(`
+        *,
+        client_assignments!inner(employee_id, is_active),
+        job_applications (
+          id,
+          status,
+          application_date
+        )
+      `)
       .eq("client_assignments.employee_id", user.id)
       .eq("client_assignments.is_active", true)
 
@@ -104,9 +113,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     // 6. Pass everything to the Client Wrapper
     // The Wrapper will decide which component to show (Dashboard, Clients, or Assignments)
     return (
-      <DashboardClientWrapper 
-        user={user} 
-        profile={profile} 
+      <DashboardClientWrapper
+        user={user}
+        profile={profile}
         initialClients={myClients || []}
         managerData={managerData}
         isManager={isManager}
