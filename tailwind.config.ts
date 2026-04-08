@@ -1,5 +1,4 @@
 import type { Config } from "tailwindcss";
-import colors from "tailwindcss/colors";
 
 const config: Config = {
   darkMode: ["class"],
@@ -12,16 +11,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // --- Fix for Tailwind v3 Color Warnings ---
-        // We map the old deprecated names to the new standard names
-        // so that your existing code works and the warnings disappear.
-        lightBlue: colors.sky,
-        warmGray: colors.stone,
-        trueGray: colors.neutral,
-        coolGray: colors.gray,
-        blueGray: colors.slate,
-
-        // --- Shadcn UI & App Variables ---
+        // Shadcn UI & App Variables
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
@@ -80,20 +70,12 @@ const config: Config = {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
       },
       animation: {

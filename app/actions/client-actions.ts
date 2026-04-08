@@ -1,79 +1,73 @@
 "use server"
 
-import { createClient } from "@/lib/supabase/server" // Ensure this path is correct for your project
+import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
-// 1. Define the Validation Schema (Best Practice)
+// 1. Define the Validation Schema
 const ApplicationSchema = z.object({
   clientId: z.string().uuid(),
   companyName: z.string().min(1, "Company name is required"),
   jobTitle: z.string().min(1, "Job title is required"),
-  jobUrl: z.string().url().optional().or(z.literal("")),
-  salaryRange: z.string().optional(),
+  jobUrl: z.string().url("Must be a valid URL (e.g., https://...)").optional().or(z.literal("")),
+  salaryRange: z.string().optional().nullable(),
   status: z.enum(['submitted', 'interview', 'offer', 'rejected']).default('submitted'),
-  notes: z.string().optional(),
+  notes: z.string().optional().nullable(),
 })
 
-// 2. The Actual Function Called by the Form
 export async function submitJobApplication(data: any) {
   const supabase = await createClient()
 
-  // A. Security Check: Who is sending this?
+  // A. Security Check
   const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
-    throw new Error("Unauthorized: You must be logged in.")
-  }
+  if (authError || !user) return { error: "Unauthorized: You must be logged in." }
 
-  // B. Validation Check: Is the data clean?
+  // B. Validation Check
   const result = ApplicationSchema.safeParse(data)
-  if (!result.success) {
-    throw new Error("Invalid data: " + result.error.errors[0].message)
-  }
+  if (!result.success) return { error: "Invalid data: " + result.error.errors[0].message }
 
   const { clientId, companyName, jobTitle, jobUrl, salaryRange, status, notes } = result.data
 
-  // C. Permission Check: Is this employee allowed to work on this client?
-  // (Optional but recommended extra layer of security)
-  const { data: assignment } = await supabase
-    .from('client_assignments')
-    .select('id')
-    .eq('client_id', clientId)
-    .eq('employee_id', user.id)
-    .single()
+  // C. Permission Check (Allow Managers to bypass assignment check)
+  const { data: profile } = await supabase.from('user_profiles').select('role').eq('id', user.id).single()
+  const isManager = profile?.role === 'manager' || profile?.role === 'admin'
 
-  if (!assignment) {
-    throw new Error("Unauthorized: You are not assigned to this client.")
+  if (!isManager) {
+    const { data: assignment } = await supabase
+      .from('client_assignments')
+      .select('id')
+      .eq('client_id', clientId)
+      .eq('employee_id', user.id)
+      .eq('is_active', true)
+      .maybeSingle() // Use maybeSingle to prevent database crash if 0 rows found
+
+    if (!assignment) return { error: "Unauthorized: You are not assigned to this client." }
   }
 
-  // D. The Insert (This triggers the Notification automatically!)
+  // D. The Insert with NULL handling
   const { error } = await supabase.from("job_applications").insert({
     client_id: clientId,
     submitted_by: user.id,
-    company_name: companyName,
-    job_title: jobTitle,
-    job_url: jobUrl,
-    salary_range: salaryRange,
+    company_name: companyName.trim(),
+    job_title: jobTitle.trim(),
+    job_url: jobUrl?.trim() || null,
+    salary_range: salaryRange?.trim() || null,
     status: status,
-    notes: notes,
-    application_date: new Date().toISOString(), // Defaults to "Now"
+    notes: notes?.trim() || null,
+    application_date: new Date().toISOString(),
     application_method: 'portal'
   })
 
   if (error) {
     console.error("Supabase Error:", error)
-    throw new Error("Failed to save application to database.")
+    return { error: "Database error: " + error.message }
   }
 
   // E. Refresh the Data
-  revalidatePath('/dashboard') 
-  
+  revalidatePath('/dashboard')
   return { success: true }
 }
 
-// Placeholder for the Job Match function (to avoid import errors)
 export async function submitJobMatch(data: any) {
-  // We can implement this later
-  console.log("Job Match Placeholder", data)
   return { success: true }
 }
