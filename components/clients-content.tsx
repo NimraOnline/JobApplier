@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react"
 import { submitJobApplication } from "@/app/actions/client-actions"
 import { ApplicationForm } from "@/components/application-form"
-import { InterviewForm } from "@/components/dashboard/interview-form" // ✅ NEW IMPORT
+import { InterviewForm } from "@/components/dashboard/interview-form"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -18,14 +18,14 @@ import {
   ChevronRight,
   CheckCircle2,
   Building2,
-  CalendarCheck
+  CalendarCheck,
+  Clock // ✅ Added Clock icon for the history
 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
-// If you have a strict Client type, you might need to extend it to include job_applications
 interface ClientsContentProps {
-  clients: any[] // Using any[] to safely handle the joined job_applications data
+  clients: any[]
   isLoading?: boolean
 }
 
@@ -48,13 +48,30 @@ export function ClientsContent({ clients = [], isLoading }: ClientsContentProps)
   // 2. Find the currently active client object
   const selectedClient = clients.find(c => c.id === selectedClientId)
 
-  // 3. Filter for Success Applications (Interviews, Offers, Accepted)
+  // 3A. Filter for Success Applications (Interviews, Offers, Accepted)
   const successApplications = useMemo(() => {
     if (!selectedClient || !selectedClient.job_applications) return []
     return selectedClient.job_applications.filter((app: any) =>
       ['interview', 'offer', 'accepted'].includes((app.status || '').toLowerCase())
     ).sort((a: any, b: any) => new Date(b.application_date).getTime() - new Date(a.application_date).getTime())
   }, [selectedClient])
+
+  // 3B. Filter for Standard Application History (Submitted, Review, Rejected)
+  const standardApplications = useMemo(() => {
+    if (!selectedClient || !selectedClient.job_applications) return []
+    return selectedClient.job_applications.filter((app: any) =>
+      ['submitted', 'under_review', 'rejected'].includes((app.status || '').toLowerCase())
+    ).sort((a: any, b: any) => new Date(b.application_date).getTime() - new Date(a.application_date).getTime())
+  }, [selectedClient])
+
+  // Helper for status badge colors
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'rejected': return 'bg-red-50 text-red-700 border-red-200'
+      case 'under_review': return 'bg-amber-50 text-amber-700 border-amber-200'
+      default: return 'bg-blue-50 text-blue-700 border-blue-200'
+    }
+  }
 
   // 4. Handle Standard Application Submission
   const handleApplicationSubmit = async (data: any) => {
@@ -174,20 +191,81 @@ export function ClientsContent({ clients = [], isLoading }: ClientsContentProps)
               {/* FORMS GRID */}
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
-                {/* Left Column: Standard Application Form */}
-                {/* 1. Update the Left Column: Standard Application Form */}
-                <div className="xl:col-span-1">
+                {/* ------------------------------------------------ */}
+                {/* LEFT COLUMN: Standard Application & History      */}
+                {/* ------------------------------------------------ */}
+                <div className="xl:col-span-1 flex flex-col gap-6">
+                  {/* Standard Form */}
                   <ApplicationForm
                     key={`app-form-${selectedClient.id}`}
                     client={selectedClient}
                     onSubmit={handleApplicationSubmit}
                   />
+
+                  {/* Application History Feed */}
+                  <div className="flex-1 flex flex-col mt-2">
+                    <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2 border-b pb-2">
+                      <Clock className="w-4 h-4 text-blue-600" />
+                      Application History
+                    </h3>
+
+                    {standardApplications.length === 0 ? (
+                      <div className="p-6 border-2 border-dashed border-slate-200 rounded-xl text-center text-slate-400 text-sm italic bg-slate-50/50">
+                        No applications submitted yet.
+                      </div>
+                    ) : (
+                      <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 pb-4">
+                        {standardApplications.map((app: any) => (
+                          <Card key={app.id} className="border-l-4 border-l-blue-500 shadow-sm bg-white hover:shadow-md transition-shadow">
+                            <CardContent className="p-3">
+                              <div className="flex justify-between items-start gap-2">
+                                <div className="space-y-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h4 className="font-bold text-sm text-slate-900 truncate">{app.job_title}</h4>
+                                    <Badge variant="outline" className={cn("uppercase text-[9px] px-1.5 py-0", getStatusColor(app.status))}>
+                                      {app.status}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-xs text-slate-600 flex items-center gap-1 truncate">
+                                    <Building2 className="w-3 h-3 shrink-0" /> {app.company_name}
+                                  </p>
+                                </div>
+
+                                <div className="text-right text-[10px] text-slate-400 shrink-0">
+                                  <p className="font-medium text-slate-500">
+                                    {new Date(app.application_date).toLocaleDateString()}
+                                  </p>
+                                  <p className="capitalize">{app.application_method}</p>
+                                </div>
+                              </div>
+
+                              {app.notes && (
+                                <div className="mt-2 p-2 bg-slate-50 rounded text-[11px] text-slate-600 border border-slate-100 line-clamp-2">
+                                  <span className="font-semibold text-slate-700">Notes:</span> {app.notes}
+                                </div>
+                              )}
+
+                              {app.job_url && (
+                                <div className="mt-2 flex justify-end">
+                                  <Button variant="link" size="sm" className="h-auto p-0 text-[10px] text-blue-600" asChild>
+                                    <a href={app.job_url} target="_blank" rel="noreferrer">View Posting →</a>
+                                  </Button>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Right Column: Interview Form & Success History */}
+                {/* ------------------------------------------------ */}
+                {/* RIGHT COLUMN: Interview Form & Success History   */}
+                {/* ------------------------------------------------ */}
                 <div className="xl:col-span-1 flex flex-col gap-6">
 
-                  {/* 2. Update the Log Interview Card */}
+                  {/* Log Interview Card */}
                   <Card className="shadow-sm border-green-200 bg-green-50/30">
                     <CardHeader className="pb-4 border-b border-green-100 mb-4 bg-green-50/50">
                       <CardTitle className="text-lg font-bold text-green-800 flex items-center gap-2">
@@ -202,8 +280,8 @@ export function ClientsContent({ clients = [], isLoading }: ClientsContentProps)
                     </CardContent>
                   </Card>
 
-                  {/* 2. Success Applications Feed */}
-                  <div className="flex-1 flex flex-col">
+                  {/* Success Applications Feed */}
+                  <div className="flex-1 flex flex-col mt-2">
                     <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2 border-b pb-2">
                       <CheckCircle2 className="w-4 h-4 text-green-600" />
                       Success Milestones
@@ -214,7 +292,7 @@ export function ClientsContent({ clients = [], isLoading }: ClientsContentProps)
                         No success milestones logged yet for this client.
                       </div>
                     ) : (
-                      <div className="space-y-3 overflow-y-auto pr-2 pb-4">
+                      <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 pb-4">
                         {successApplications.map((app: any) => (
                           <Card key={app.id} className="border-l-4 border-l-green-500 shadow-sm bg-white hover:shadow-md transition-shadow">
                             <CardContent className="p-3">
