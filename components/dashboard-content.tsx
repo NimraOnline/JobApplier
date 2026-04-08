@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, FileText, CheckCircle, Clock } from "lucide-react"
 import { LoadingState } from "@/components/loading-state"
@@ -7,45 +8,93 @@ import type { Client } from "@/types/client"
 
 // Define Props Interface
 interface DashboardContentProps {
-  clients: Client[]
+  clients: any[] // Using any[] to account for the joined job_applications array
   isLoading: boolean
 }
 
-export function DashboardContent({ clients, isLoading }: DashboardContentProps) {
-  // We removed useClients() hook from here
+export function DashboardContent({ clients = [], isLoading }: DashboardContentProps) {
+
+  // --- REAL DATA CALCULATIONS ---
+  const statsData = useMemo(() => {
+    let totalApps = 0;
+    let pendingApps = 0;
+    let appsThisMonth = 0;
+    let successApps = 0;
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    // Loop through all clients and their applications
+    clients.forEach(client => {
+      const apps = client.job_applications || [];
+      totalApps += apps.length;
+
+      apps.forEach((app: any) => {
+        const status = (app.status || "").toLowerCase();
+
+        // 1. Count Pending
+        if (['submitted', 'under_review'].includes(status)) {
+          pendingApps++;
+        }
+
+        // 2. Count Successes (Interviews, Offers, Accepted)
+        if (['interview', 'offer', 'accepted'].includes(status)) {
+          successApps++;
+        }
+
+        // 3. Count This Month
+        if (app.application_date) {
+          const appDate = new Date(app.application_date);
+          if (appDate.getMonth() === currentMonth && appDate.getFullYear() === currentYear) {
+            appsThisMonth++;
+          }
+        }
+      });
+    });
+
+    // 4. Calculate Success Rate Percentage
+    const successRate = totalApps > 0 ? Math.round((successApps / totalApps) * 100) : 0;
+
+    return {
+      totalClients: clients.length,
+      pendingApps,
+      appsThisMonth,
+      successRate
+    }
+  }, [clients]);
+
 
   if (isLoading) {
     return <LoadingState message="Loading dashboard stats..." />
   }
 
-  const totalClients = clients.length
-  
+  // --- STATS ARRAY ---
   const stats = [
     {
       title: "My Active Clients",
-      value: totalClients.toString(),
+      value: statsData.totalClients.toString(),
       icon: Users,
       description: "Assigned to you",
       color: "text-blue-600",
     },
-    // ... other stats ...
     {
       title: "Pending Applications",
-      value: "12", 
+      value: statsData.pendingApps.toString(),
       icon: Clock,
       description: "Awaiting review",
       color: "text-orange-600",
     },
     {
       title: "Applications Submitted",
-      value: "45",
+      value: statsData.appsThisMonth.toString(),
       icon: FileText,
       description: "This month",
       color: "text-green-600",
     },
     {
       title: "Success Rate",
-      value: "24%",
+      value: `${statsData.successRate}%`,
       icon: CheckCircle,
       description: "Interview conversion",
       color: "text-purple-600",
@@ -82,27 +131,39 @@ export function DashboardContent({ clients, isLoading }: DashboardContentProps) 
           <CardTitle>Your Clients</CardTitle>
         </CardHeader>
         <CardContent>
-          {totalClients > 0 ? (
+          {clients.length > 0 ? (
             <div className="space-y-4">
-               {clients.slice(0, 5).map(client => (
-                 <div key={client.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
-                        {client.name ? client.name.substring(0,2).toUpperCase() : "CL"}
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">{client.name}</p>
-                        <p className="text-xs text-slate-500">{client.email}</p>
-                      </div>
+              {/* Show up to 5 most recent/active clients */}
+              {clients.slice(0, 5).map((client) => (
+                <div key={client.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs shadow-sm">
+                      {client.name ? client.name.substring(0, 2).toUpperCase() : "CL"}
                     </div>
-                    <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">
-                      Active
+                    <div>
+                      <p className="font-medium text-sm text-slate-800">{client.name}</p>
+                      <p className="text-xs text-slate-500">{client.email}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    {/* Show how many apps they have this month */}
+                    <span className="text-xs text-slate-500 hidden sm:inline-block">
+                      {client.job_applications?.length || 0} Total Apps
                     </span>
-                 </div>
-               ))}
+
+                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${client.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-700'
+                      }`}>
+                      {client.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
-            <p className="text-sm text-slate-500">No clients assigned yet.</p>
+            <div className="text-center p-6 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+              <p className="text-sm text-slate-500">No clients assigned to you yet.</p>
+            </div>
           )}
         </CardContent>
       </Card>
