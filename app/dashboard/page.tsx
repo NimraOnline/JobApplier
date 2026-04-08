@@ -45,7 +45,6 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       return redirect('/login?message=Access denied')
     }
 
-    // 4. Fetch "My Clients" (The ones currently assigned to the logged-in user)
     // 4. Fetch "My Clients"
     const { data: myClients } = await supabase
       .from("clients")
@@ -54,8 +53,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         client_assignments!inner(employee_id, is_active),
         job_applications (
           id,
+          job_title,
+          company_name,
           status,
-          application_date
+          application_date,
+          application_method,
+          job_url,
+          notes
         )
       `)
       .eq("client_assignments.employee_id", user.id)
