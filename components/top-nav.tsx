@@ -42,7 +42,7 @@ export function TopNav({ activeTab, onTabChange, profile: propProfile }: TopNavP
   const navigation = [
     { title: "Dashboard", icon: LayoutDashboard, id: "dashboard" },
     { title: "My Clients", icon: Users, id: "clients" }, // Renamed to "My Clients" for clarity
-    { title: "Helpful Tips", icon: BookOpen, id: "playbook" },
+    { title: "Playbook", icon: BookOpen, id: "playbook" },
     { title: "Generate & Edit", icon: Bot, id: "generate-edit" },
   ]
 
