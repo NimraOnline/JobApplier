@@ -21,7 +21,7 @@ import {
   Building2,
   ChevronDown,
   UserPlus,
-  UserCheck, 
+  UserCheck,
   BookOpen,
 } from "lucide-react"
 
@@ -42,7 +42,7 @@ export function TopNav({ activeTab, onTabChange, profile: propProfile }: TopNavP
   const navigation = [
     { title: "Dashboard", icon: LayoutDashboard, id: "dashboard" },
     { title: "My Clients", icon: Users, id: "clients" }, // Renamed to "My Clients" for clarity
-    { title: "Playbook", icon: BookOpen, id: "playbook" },
+    { title: "Helpful Tips", icon: BookOpen, id: "playbook" },
     { title: "Generate & Edit", icon: Bot, id: "generate-edit" },
   ]
 
@@ -61,7 +61,7 @@ export function TopNav({ activeTab, onTabChange, profile: propProfile }: TopNavP
   const displayName = profile?.full_name || user?.email?.split('@')[0] || "Employee"
   const displayRole = profile?.role || "Team Member"
   const userEmail = user?.email || "No email"
-  
+
   const getInitials = (name: string) => {
     return name ? name.substring(0, 2).toUpperCase() : "EM"
   }
@@ -69,7 +69,7 @@ export function TopNav({ activeTab, onTabChange, profile: propProfile }: TopNavP
   return (
     <nav className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 border-b border-blue-700 shadow-lg">
       <div className="flex items-center justify-between px-6 py-4">
-        
+
         {/* Left side - Logo and Navigation */}
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-3">
@@ -88,11 +88,10 @@ export function TopNav({ activeTab, onTabChange, profile: propProfile }: TopNavP
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
                 variant="ghost"
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${
-                  activeTab === item.id
-                    ? "bg-white/20 text-white shadow-lg backdrop-blur-sm"
-                    : "text-blue-100 hover:bg-white/10 hover:text-white"
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${activeTab === item.id
+                  ? "bg-white/20 text-white shadow-lg backdrop-blur-sm"
+                  : "text-blue-100 hover:bg-white/10 hover:text-white"
+                  }`}
               >
                 <item.icon className="w-4 h-4" />
                 <span className="font-medium">{item.title}</span>
@@ -104,11 +103,11 @@ export function TopNav({ activeTab, onTabChange, profile: propProfile }: TopNavP
         {/* Right side - User Profile */}
         {loading && !profile ? (
           <div className="flex items-center gap-3 px-3 py-2">
-             <Skeleton className="h-8 w-8 rounded-full bg-white/20" />
-             <div className="hidden md:block space-y-1">
-               <Skeleton className="h-4 w-24 bg-white/20" />
-               <Skeleton className="h-3 w-16 bg-white/20" />
-             </div>
+            <Skeleton className="h-8 w-8 rounded-full bg-white/20" />
+            <div className="hidden md:block space-y-1">
+              <Skeleton className="h-4 w-24 bg-white/20" />
+              <Skeleton className="h-3 w-16 bg-white/20" />
+            </div>
           </div>
         ) : (
           <DropdownMenu>
@@ -118,7 +117,7 @@ export function TopNav({ activeTab, onTabChange, profile: propProfile }: TopNavP
                 className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10 transition-all duration-200"
               >
                 <Avatar className="w-8 h-8 ring-2 ring-white/30">
-                  <AvatarImage src="" /> 
+                  <AvatarImage src="" />
                   <AvatarFallback className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-semibold">
                     {getInitials(displayName)}
                   </AvatarFallback>
@@ -134,7 +133,7 @@ export function TopNav({ activeTab, onTabChange, profile: propProfile }: TopNavP
                 <ChevronDown className="w-4 h-4 text-blue-100" />
               </Button>
             </DropdownMenuTrigger>
-            
+
             <DropdownMenuContent align="end" className="w-64 bg-white/95 backdrop-blur-sm border border-slate-200">
               <div className="px-3 py-2">
                 <p className="text-sm font-medium text-slate-900">{displayName}</p>
@@ -143,10 +142,10 @@ export function TopNav({ activeTab, onTabChange, profile: propProfile }: TopNavP
                   <span className="truncate">{userEmail}</span>
                 </p>
               </div>
-              
+
               <DropdownMenuSeparator />
-              
-              <DropdownMenuItem 
+
+              <DropdownMenuItem
                 onClick={handleSignOut}
                 className="text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer focus:text-red-700 focus:bg-red-50"
               >
